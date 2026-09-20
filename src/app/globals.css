@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: 139 92 246; /* purple, overridden at runtime from the user's saved accent */
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #000;
+  color: #fff;
+  min-height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Date pickers / selects render with the dark scheme */
+input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Hide number input spinners; amounts are typed */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #48484a;
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-xl bg-card2 px-4 py-3 text-[15px] text-white outline-none ring-1 ring-transparent transition focus:ring-accent/60;
+  }
+  .label {
+    @apply text-[11px] uppercase tracking-wider text-muted;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-[15px] font-semibold text-white transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-card2 px-4 py-3 text-sm text-muted transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .icon-btn {
+    @apply flex h-9 w-9 items-center justify-center rounded-full bg-card text-muted transition hover:brightness-125;
+  }
+}
