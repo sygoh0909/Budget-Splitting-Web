@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, kind: ToastKind = "info") => {
     const id = nextId.current++;
     setItems((prev) => [...prev, { id, message, kind }]);
-    setTimeout(() => setItems((prev) => prev.filter((t) => t.id !== id)), 4000);
+    setTimeout(() => setItems((prev) => prev.filter((t) => t.id !== id)), kind === "error" ? 9000 : 4000);
   }, []);
 
   const value = useMemo(() => toast, [toast]);

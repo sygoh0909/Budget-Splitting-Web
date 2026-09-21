@@ -8,7 +8,8 @@ accounts and books keep working.
 
 ## What changed vs. the Flutter app
 - **Website, not an app** — Next.js (App Router) + TypeScript + Tailwind; each screen is a real URL.
-- **Receipt scanning / AI removed** — no OpenRouter, no camera button, no API key.
+- **Receipt scanning kept** — same OpenRouter free vision models and prompt as the Flutter app, but the call now runs in a
+  Vercel server route (`/api/scan`) so the API key stays private. Scanned items arrive unassigned; you pick people in the dropdown.
 - **Assigning people is a dropdown** — each item has a "Split" dropdown (tick one or more people, or *Everyone*)
   instead of a row of person chips. *Paid by* is a normal select.
 
@@ -25,7 +26,12 @@ npm run dev        # http://localhost:3000
 3. Deploy the Firestore rules and index (once): `npx firebase-tools deploy --only firestore`
    (`firestore.rules` and `firestore.indexes.json` are included and unchanged from the Flutter project).
 
-No environment variables are required — the Firebase web config is bundled (it's public by design; access is
+For receipt scanning, add **`OPENROUTER_API_KEY`** in Vercel → Settings → Environment Variables (get a free key at openrouter.ai/keys;
+use a *new* key, not the one from the Flutter source). Without it the rest of the app works and the camera button shows a friendly error.
+Optionally set `OPENROUTER_MODELS` (comma-separated) since free models on OpenRouter change over time.
+A failed scan shows the real reason (e.g. `HTTP 404 – No endpoints found`), and the details are in Vercel → Logs.
+
+No other environment variables are required — the Firebase web config is bundled (it's public by design; access is
 enforced by Auth + the Firestore rules). To use a different Firebase project, copy `.env.example` to `.env.local`
 and set the `NEXT_PUBLIC_FIREBASE_*` values, and mirror them in Vercel's Environment Variables.
 
@@ -44,6 +50,9 @@ expense titled `settlement:<from>:<to>`.
 ```
 src/app/                 routes: / · /books/new · /books/join · /books/[id] · /books/[id]/edit · /profile
 src/components/          screens + PeopleSelect (the dropdown) + ExpenseModal
+src/app/api/scan/       server route: checks Firebase login, calls OpenRouter (key stays server-side)
+src/lib/receiptScan.ts   prompt, model fallback, 429 retry, JSON parsing (server only)
+src/lib/scanClient.ts    shrinks the photo to ≤1600px JPEG, calls /api/scan
 src/lib/split.ts         balance / settlement maths
 src/lib/db.ts, auth.ts   Firestore + Auth (port of the Dart services)
 firestore.rules          security rules
