@@ -35,8 +35,7 @@ export interface ScanResult {
  */
 export const DEFAULT_MODELS = [
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "openrouter/free",
+  "nex-agi/nex-n2-pro:free",
 ];
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
