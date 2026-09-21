@@ -1,0 +1,53 @@
+import type { User } from "firebase/auth";
+import type { AdditionalCharge, Expense } from "./types";
+import type { ScanResult } from "./receiptScan";
+import { generateUuid } from "./util";
+
+const MAX_SIDE = 1600;
+
+/** Shrink a photo to a ≤1600px JPEG data URL so it fits Vercel's ~4.5 MB request limit. */
+export async function imageToScanDataUrl(file: File): Promise<string> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    throw new Error("Couldn't read that image. Try a JPEG or PNG photo.");
+  }
+  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff"; // PNG transparency → white, JPEG has no alpha
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
+/** Scan a receipt photo and return a pre-filled (unassigned) expense to review. */
+export async function scanReceiptFile(user: User, file: File, paidBy: string): Promise<Expense> {
+  const image = await imageToScanDataUrl(file);
+  const token = await user.getIdToken();
+
+  const res = await fetch("/api/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ image }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? `Scan failed (${res.status})`);
+
+  const result = data as ScanResult;
+  return {
+    id: generateUuid(),
+    title: result.title,
+    date: result.date,
+    paidBy,
+    note: null,
+    hasReceipt: true,
+    // items come back unassigned — the person picks who shares each one in the dropdown
+    items: result.items.map((i) => ({ id: generateUuid(), title: i.title, amount: i.amount, category: i.category, splitWith: [] })),
+    additionalCharges: result.charges.map((c): AdditionalCharge => ({ id: generateUuid(), ...c })),
+  };
+}

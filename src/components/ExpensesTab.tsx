@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, ArrowRight, Banknote, CalendarDays, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { AlertCircle, ArrowRight, Banknote, CalendarDays, Camera, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Book, Expense } from "@/lib/types";
 import { expenseDisplayTitle, expenseTotal, isSettlement } from "@/lib/split";
 import { formatDate, money, monthName, todayISO, withAlpha, firstLetter } from "@/lib/util";
@@ -11,6 +11,7 @@ interface Props {
   book: Book;
   expenses: Expense[];
   onAdd: () => void;
+  onScan: (file: File) => void;
   onEdit: (e: Expense) => void;
   onDelete: (id: string) => Promise<void>;
 }
@@ -26,7 +27,8 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
   );
 }
 
-export function ExpensesTab({ book, expenses, onAdd, onEdit, onDelete }: Props) {
+export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }: Props) {
+  const fileRef = useRef<HTMLInputElement>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterPeople, setFilterPeople] = useState<string[]>([]);
@@ -160,6 +162,23 @@ export function ExpensesTab({ book, expenses, onAdd, onEdit, onDelete }: Props) 
         <button onClick={onAdd} className="btn-primary flex-1 !rounded-2xl !py-2.5 !text-sm">
           <Plus size={16} /> Add Expense
         </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          aria-hidden
+          tabIndex={-1}
+          data-testid="receipt-input"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = ""; // allow re-picking the same photo
+            if (f) onScan(f);
+          }}
+        />
+        <button onClick={() => fileRef.current?.click()} aria-label="Scan receipt" title="Scan receipt" className="flex h-10 w-10 items-center justify-center rounded-2xl bg-card text-muted transition hover:brightness-125">
+          <Camera size={16} />
+        </button>
         <button
           onClick={() => setShowFilters((v) => !v)}
           aria-label="Filters"
@@ -261,7 +280,7 @@ export function ExpensesTab({ book, expenses, onAdd, onEdit, onDelete }: Props) 
           <div className="py-16 text-center">
             <Receipt size={48} className="mx-auto text-dim" />
             <p className="mt-4 font-semibold">No expenses yet</p>
-            <p className="mt-1 text-[13px] text-muted">Add an expense to get started</p>
+            <p className="mt-1 text-[13px] text-muted">Add an expense or scan a receipt</p>
           </div>
         ) : receipts.length === 0 && settlements.length === 0 ? (
           <div className="py-16 text-center">

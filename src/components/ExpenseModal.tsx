@@ -19,6 +19,8 @@ interface ExpenseModalProps {
   currency: string;
   /** pass to edit an existing expense; omit to add a new one */
   initial?: Expense;
+  /** pre-filled values for a NEW expense (e.g. from a receipt scan) */
+  prefill?: Expense;
   onSave: (expense: Expense) => Promise<void>;
   onDelete?: () => Promise<void>;
   onClose: () => void;
@@ -202,14 +204,15 @@ function ItemRow({
 
 /* ── The form ────────────────────────────────────────────────────────────── */
 
-export function ExpenseModal({ people, deletedPeople, currency, initial, onSave, onDelete, onClose }: ExpenseModalProps) {
+export function ExpenseModal({ people, deletedPeople, currency, initial, prefill, onSave, onDelete, onClose }: ExpenseModalProps) {
   const toast = useToast();
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [date, setDate] = useState(initial?.date ?? todayISO());
-  const [paidBy, setPaidBy] = useState(initial?.paidBy ?? people[0]?.id ?? "");
-  const [note, setNote] = useState(initial?.note ?? "");
-  const [items, setItems] = useState<ExpenseItem[]>(initial ? initial.items.map((i) => ({ ...i, splitWith: [...i.splitWith] })) : [newItem()]);
-  const [charges, setCharges] = useState<AdditionalCharge[]>(initial?.additionalCharges ?? []);
+  const seed = initial ?? prefill;
+  const [title, setTitle] = useState(seed?.title ?? "");
+  const [date, setDate] = useState(seed?.date ?? todayISO());
+  const [paidBy, setPaidBy] = useState(seed?.paidBy ?? people[0]?.id ?? "");
+  const [note, setNote] = useState(seed?.note ?? "");
+  const [items, setItems] = useState<ExpenseItem[]>(seed ? seed.items.map((i) => ({ ...i, splitWith: [...i.splitWith] })) : [newItem()]);
+  const [charges, setCharges] = useState<AdditionalCharge[]>(seed?.additionalCharges ?? []);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -220,7 +223,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, onSave,
     items,
     additionalCharges: charges,
     note: null,
-    hasReceipt: initial?.hasReceipt ?? false,
+    hasReceipt: seed?.hasReceipt ?? false,
   };
   const total = itemsTotal(draft) + chargesTotal(draft);
   const allPeople = [...people, ...deletedPeople];
@@ -242,7 +245,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, onSave,
         items,
         additionalCharges: charges,
         note: note.trim() === "" ? null : note.trim(),
-        hasReceipt: initial?.hasReceipt ?? false,
+        hasReceipt: seed?.hasReceipt ?? false,
       });
       onClose();
     } catch (err) {
@@ -267,7 +270,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, onSave,
     <Modal open onClose={onClose} size="lg" labelledBy="expense-title">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-card2 px-6 pb-4 pt-5">
-        <h2 id="expense-title" className="text-[17px] font-bold">{initial ? "Edit Expense" : "New Expense"}</h2>
+        <h2 id="expense-title" className="text-[17px] font-bold">{initial ? "Edit Expense" : prefill ? "Review Receipt" : "New Expense"}</h2>
         <div className="flex items-center gap-4">
           {initial && onDelete && (
             <button onClick={() => setConfirmDelete(true)} aria-label="Delete expense" className="text-danger transition hover:brightness-125">
@@ -286,7 +289,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, onSave,
           <label htmlFor="exp-title" className="label">Title</label>
           <input
             id="exp-title"
-            autoFocus={!initial}
+            autoFocus={!seed}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Dinner at Ichiran"

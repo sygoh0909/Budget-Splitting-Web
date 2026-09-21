@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { scanReceiptFile } from "@/lib/scanClient";
+import { Spinner } from "./ui/Spinner";
 import { useUser } from "./Providers";
 import { useToast } from "./ui/Toast";
 import { Modal } from "./ui/Modal";
@@ -29,7 +31,8 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
   const { data: expenses, error: expError } = useExpenses(bookId);
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("expenses");
-  const [expenseForm, setExpenseForm] = useState<{ initial?: Expense } | null>(null);
+  const [expenseForm, setExpenseForm] = useState<{ initial?: Expense; prefill?: Expense } | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [removing, setRemoving] = useState<Person | null>(null);
   const [claiming, setClaiming] = useState<Person | null>(null);
   const [claimTarget, setClaimTarget] = useState<Person | null>(null);
@@ -54,6 +57,20 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
   };
 
   const getPerson = (id: string) => book.people.find((p) => p.id === id) ?? book.deletedPeople.find((p) => p.id === id);
+
+  async function scan(file: File) {
+    if (!book || scanning) return;
+    setScanning(true);
+    try {
+      const prefill = await scanReceiptFile(user, file, book.people[0]?.id ?? "");
+      setExpenseForm({ prefill });
+    } catch (e) {
+      console.error(e);
+      toast(e instanceof Error ? e.message : "Failed to scan receipt.", "error");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function addPlaceholder(rawName: string) {
     const name = rawName.trim();
@@ -153,6 +170,7 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
             book={book}
             expenses={expenses}
             onAdd={() => setExpenseForm({})}
+            onScan={scan}
             onEdit={(e) => setExpenseForm({ initial: e })}
             onDelete={async (id) => { try { await deleteExpense(bookId, id); } catch (e) { fail(e, "Couldn't delete the expense."); } }}
           />
@@ -175,15 +193,23 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
 
       {expenseForm && (
         <ExpenseModal
-          key={expenseForm.initial?.id ?? "new"}
+          key={expenseForm.initial?.id ?? expenseForm.prefill?.id ?? "new"}
           people={book.people}
           deletedPeople={book.deletedPeople}
           currency={book.currency}
           initial={expenseForm.initial}
+          prefill={expenseForm.prefill}
           onSave={(e) => upsertExpense(bookId, e)}
           onDelete={expenseForm.initial ? () => deleteExpense(bookId, expenseForm.initial!.id) : undefined}
           onClose={() => setExpenseForm(null)}
         />
+      )}
+
+      {scanning && (
+        <div role="status" className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-4 bg-black/75">
+          <Spinner size={32} />
+          <p className="text-sm">Scanning receipt…</p>
+        </div>
       )}
 
       <ConfirmDialog
