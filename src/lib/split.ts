@@ -52,6 +52,14 @@ export function expenseDisplayTitle(e: Expense): string {
   return isSettlement(e) ? settlementDisplayTitle(e) : e.title;
 }
 
+/** Category shown as the expense's icon: whichever item has the largest amount. */
+export function dominantCategory(e: Expense): string {
+  if (isSettlement(e) || e.items.length === 0) return "Misc";
+  let best = e.items[0];
+  for (const item of e.items) if (item.amount > best.amount) best = item;
+  return best.category;
+}
+
 /** net balance per person: positive = is owed, negative = owes */
 export function computeBalances(people: Person[], expenses: Expense[]): Record<string, number> {
   const bal: Record<string, number> = {};

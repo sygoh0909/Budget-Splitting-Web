@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AlertCircle, ArrowRight, Banknote, CalendarDays, Camera, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Book, Expense } from "@/lib/types";
-import { expenseDisplayTitle, expenseTotal, isSettlement } from "@/lib/split";
+import { dominantCategory, expenseDisplayTitle, expenseTotal, isSettlement } from "@/lib/split";
 import { categoryIcons } from "@/lib/constants";
 import { formatDate, money, monthName, todayISO, withAlpha, firstLetter } from "@/lib/util";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -75,10 +75,13 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
           className="flex w-full items-start gap-3 p-3.5 text-left"
         >
           <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-card2">
-            {expense.hasReceipt ? (
-              <Receipt size={16} className={unassigned ? "text-warn" : "text-accent"} />
-            ) : (
+            {isSettlement(expense) ? (
               <Banknote size={16} className="text-muted" />
+            ) : (
+              (() => {
+                const CIcon = categoryIcons[dominantCategory(expense)] ?? categoryIcons.Misc;
+                return <CIcon size={16} className={unassigned ? "text-warn" : "text-accent"} />;
+              })()
             )}
           </span>
           <span className="min-w-0 flex-1">
