@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { AlertCircle, ArrowRight, Banknote, CalendarDays, Camera, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Book, Expense } from "@/lib/types";
 import { expenseDisplayTitle, expenseTotal, isSettlement } from "@/lib/split";
+import { categoryIcons } from "@/lib/constants";
 import { formatDate, money, monthName, todayISO, withAlpha, firstLetter } from "@/lib/util";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 
@@ -114,7 +115,10 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
                 return (
                   <div key={item.id} className="rounded-xl bg-card2 p-2.5">
                     <div className="flex justify-between gap-2 text-[13px]">
-                      <span className="truncate font-medium">{item.title}</span>
+                      <span className="flex min-w-0 items-center gap-1.5 truncate font-medium">
+                        {(() => { const CIcon = categoryIcons[item.category] ?? categoryIcons.Misc; return <CIcon size={13} className="shrink-0 text-dim" aria-hidden />; })()}
+                        <span className="truncate">{item.title}</span>
+                      </span>
                       <span className="font-semibold text-[#aaa]">{money(book.currency, item.amount)}</span>
                     </div>
                     {item.splitWith.length > 0 ? (

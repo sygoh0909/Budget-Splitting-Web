@@ -1,12 +1,30 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  UtensilsCrossed, ShoppingCart, Car, BedDouble, Compass, ShoppingBag, Ticket, HeartPulse, MoreHorizontal,
+} from "lucide-react";
+
 export const personColors = [
   "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6",
   "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1",
 ];
 
+// "Groceries" is new; every other name is unchanged so existing saved expenses still match.
 export const categories = [
-  "Food", "Transport", "Accommodation",
+  "Food", "Groceries", "Transport", "Accommodation",
   "Activities", "Shopping", "Tickets", "Health", "Misc",
 ];
+
+export const categoryIcons: Record<string, LucideIcon> = {
+  Food: UtensilsCrossed,
+  Groceries: ShoppingCart,
+  Transport: Car,
+  Accommodation: BedDouble,
+  Activities: Compass,
+  Shopping: ShoppingBag,
+  Tickets: Ticket,
+  Health: HeartPulse,
+  Misc: MoreHorizontal,
+};
 
 export interface CurrencyOption {
   code: string;

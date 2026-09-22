@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, Percent, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { AdditionalCharge, ChargeType, Expense, ExpenseItem, Person } from "@/lib/types";
 import { categories } from "@/lib/constants";
+import { CategoryPicker } from "./CategoryPicker";
 import { generateUuid, money, todayISO } from "@/lib/util";
 import { chargesTotal, itemsTotal } from "@/lib/split";
 import { Modal } from "./ui/Modal";
@@ -152,6 +153,11 @@ function ItemRow({
   return (
     <div className="rounded-2xl bg-card2 p-3">
       <div className="flex items-center gap-2">
+        <CategoryPicker
+          value={item.category}
+          onChange={(category) => onChange({ ...item, category })}
+          ariaLabel={`Category for item ${index + 1}`}
+        />
         <input
           value={item.title}
           onChange={(e) => onChange({ ...item, title: e.target.value })}
