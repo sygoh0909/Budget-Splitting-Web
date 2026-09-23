@@ -97,6 +97,12 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
               >
                 {!payer ? "(deleted)" : isDeleted(expense.paidBy) ? `${payer.name} (deleted)` : payer.name}
               </span>
+              {!isSettlement(expense) && (
+                <span className="flex items-center gap-1 text-[11px] text-dim">
+                  {(() => { const CIcon = categoryIcons[dominantCategory(expense)] ?? categoryIcons.Misc; return <CIcon size={10} aria-hidden />; })()}
+                  {dominantCategory(expense)}
+                </span>
+              )}
               <span className="text-[11px] text-dim">
                 {expense.items.length} item{expense.items.length !== 1 ? "s" : ""}
               </span>
@@ -118,10 +124,7 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
                 return (
                   <div key={item.id} className="rounded-xl bg-card2 p-2.5">
                     <div className="flex justify-between gap-2 text-[13px]">
-                      <span className="flex min-w-0 items-center gap-1.5 truncate font-medium">
-                        {(() => { const CIcon = categoryIcons[item.category] ?? categoryIcons.Misc; return <CIcon size={13} className="shrink-0 text-dim" aria-hidden />; })()}
-                        <span className="truncate">{item.title}</span>
-                      </span>
+                      <span className="truncate font-medium">{item.title}</span>
                       <span className="font-semibold text-[#aaa]">{money(book.currency, item.amount)}</span>
                     </div>
                     {item.splitWith.length > 0 ? (

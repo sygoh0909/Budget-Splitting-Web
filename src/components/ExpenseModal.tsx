@@ -27,13 +27,19 @@ interface ExpenseModalProps {
   onClose: () => void;
 }
 
-const newItem = (): ExpenseItem => ({
+const newItem = (category: string): ExpenseItem => ({
   id: generateUuid(),
   title: "",
   amount: 0,
-  category: categories[0],
+  category,
   splitWith: [],
 });
+
+/** Default the expense-level category picker to whichever item has the largest amount. */
+function dominantSeedCategory(items?: ExpenseItem[]): string {
+  if (!items || items.length === 0) return categories[0];
+  return items.reduce((best, i) => (i.amount > best.amount ? i : best), items[0]).category;
+}
 
 const cleanNumber = (v: string, allowNegative = false) => {
   const re = allowNegative ? /[^0-9.\-]/g : /[^0-9.]/g;
@@ -153,11 +159,6 @@ function ItemRow({
   return (
     <div className="rounded-2xl bg-card2 p-3">
       <div className="flex items-center gap-2">
-        <CategoryPicker
-          value={item.category}
-          onChange={(category) => onChange({ ...item, category })}
-          ariaLabel={`Category for item ${index + 1}`}
-        />
         <input
           value={item.title}
           onChange={(e) => onChange({ ...item, title: e.target.value })}
@@ -217,7 +218,8 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
   const [date, setDate] = useState(seed?.date ?? todayISO());
   const [paidBy, setPaidBy] = useState(seed?.paidBy ?? people[0]?.id ?? "");
   const [note, setNote] = useState(seed?.note ?? "");
-  const [items, setItems] = useState<ExpenseItem[]>(seed ? seed.items.map((i) => ({ ...i, splitWith: [...i.splitWith] })) : [newItem()]);
+  const [category, setCategory] = useState(() => dominantSeedCategory(seed?.items));
+  const [items, setItems] = useState<ExpenseItem[]>(seed ? seed.items.map((i) => ({ ...i, splitWith: [...i.splitWith] })) : [newItem(category)]);
   const [charges, setCharges] = useState<AdditionalCharge[]>(seed?.additionalCharges ?? []);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -238,6 +240,11 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
   const canSave = title.trim() !== "" && items.length > 0 && items.every((i) => i.title.trim() !== "");
 
   const updateItem = (idx: number, next: ExpenseItem) => setItems((prev) => prev.map((it, i) => (i === idx ? next : it)));
+
+  function changeCategory(next: string) {
+    setCategory(next);
+    setItems((prev) => prev.map((it) => ({ ...it, category: next })));
+  }
 
   async function handleSave() {
     if (!canSave || saving) return;
@@ -330,6 +337,13 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
         </div>
 
         <div>
+          <label htmlFor="exp-category" className="label">Category</label>
+          <div className="mt-1.5">
+            <CategoryPicker value={category} onChange={changeCategory} ariaLabel="Expense category" />
+          </div>
+        </div>
+
+        <div>
           <div className="mb-2 flex items-center justify-between">
             <span className="label">Items</span>
             {total > 0 && <span className="text-xs font-bold text-accent">{money(currency, total)} total</span>}
@@ -351,7 +365,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
           </div>
 
           <div className="mt-1 flex gap-5">
-            <button onClick={() => setItems((prev) => [...prev, newItem()])} className="flex items-center gap-2 py-2 text-[13px] text-accent">
+            <button onClick={() => setItems((prev) => [...prev, newItem(category)])} className="flex items-center gap-2 py-2 text-[13px] text-accent">
               <Plus size={14} /> Add item
             </button>
             <button onClick={() => setChargeOpen(true)} className="flex items-center gap-1.5 py-2 text-[13px] text-accent">

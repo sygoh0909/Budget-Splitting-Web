@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { categories, categoryIcons } from "@/lib/constants";
 import { Modal } from "./ui/Modal";
 
@@ -10,7 +11,7 @@ interface CategoryPickerProps {
   ariaLabel: string;
 }
 
-/** Small icon button that opens a grid to pick an item's category (Food, Groceries, Travel...). */
+/** Field-style trigger that opens a grid to pick the expense's category (Food, Groceries, Travel...). */
 export function CategoryPicker({ value, onChange, ariaLabel }: CategoryPickerProps) {
   const [open, setOpen] = useState(false);
   const Icon = categoryIcons[value] ?? categoryIcons.Misc;
@@ -21,10 +22,12 @@ export function CategoryPicker({ value, onChange, ariaLabel }: CategoryPickerPro
         type="button"
         onClick={() => setOpen(true)}
         aria-label={ariaLabel}
-        title={value}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/40 text-accent outline-none ring-1 ring-transparent transition hover:brightness-125 focus-visible:ring-accent/60"
+        aria-haspopup="dialog"
+        className="field flex w-full items-center gap-2.5 !text-[13px]"
       >
-        <Icon size={15} />
+        <Icon size={16} className="shrink-0 text-accent" />
+        <span className="flex-1 truncate text-left text-white">{value}</span>
+        <ChevronDown size={14} className="shrink-0 text-muted" />
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} labelledBy="category-picker-title">
