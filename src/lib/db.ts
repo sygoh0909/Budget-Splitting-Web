@@ -25,11 +25,13 @@ import type {
   Expense,
   ExpenseItem,
   JoinRequest,
+  PaymentMethod,
   Person,
 } from "./types";
 
 const booksRef = () => collection(db, "books");
 const usersRef = () => collection(db, "users");
+const paymentMethodsRef = () => collection(db, "paymentMethods");
 const expensesRef = (bookId: string) => collection(db, "books", bookId, "expenses");
 
 /* ── Serialization ───────────────────────────────────────────────────────── */
@@ -144,6 +146,22 @@ export async function createOrUpdateUser(user: Pick<AppUser, "uid" | "displayNam
   await setDoc(ref, data, { merge: true });
 }
 
+const paymentMethodFromMap = (m: DocumentData): PaymentMethod => ({
+  id: m.id ?? "",
+  type: m.type ?? "other",
+  label: m.label ?? "",
+  qrImage: m.qrImage ?? "",
+  note: m.note ?? null,
+});
+
+const paymentMethodToMap = (m: PaymentMethod) => ({
+  id: m.id,
+  type: m.type,
+  label: m.label,
+  qrImage: m.qrImage,
+  note: m.note,
+});
+
 export async function getUser(uid: string): Promise<AppUser | null> {
   const snap = await getDoc(doc(usersRef(), uid));
   if (!snap.exists()) return null;
@@ -155,11 +173,30 @@ export async function getUser(uid: string): Promise<AppUser | null> {
     photoUrl: d.photoUrl ?? null,
     createdAt: d.createdAt ?? "",
     accentColor: d.accentColor ?? null,
+    onboardingSeen: d.onboardingSeen ?? false,
   };
 }
 
 export async function saveAccentColor(uid: string, hexColor: string) {
   await setDoc(doc(usersRef(), uid), { accentColor: hexColor }, { merge: true });
+}
+
+/**
+ * Payment QR codes live in their own collection (not on the /users doc) so that any signed-in
+ * member can read a payee's methods without also being able to read their email — see firestore.rules.
+ */
+export async function getPaymentMethods(uid: string): Promise<PaymentMethod[]> {
+  const snap = await getDoc(doc(paymentMethodsRef(), uid));
+  if (!snap.exists()) return [];
+  return ((snap.data().methods as DocumentData[] | undefined) ?? []).map(paymentMethodFromMap);
+}
+
+export async function savePaymentMethods(uid: string, methods: PaymentMethod[]) {
+  await setDoc(doc(paymentMethodsRef(), uid), { methods: methods.map(paymentMethodToMap) }, { merge: true });
+}
+
+export async function markOnboardingSeen(uid: string) {
+  await setDoc(doc(usersRef(), uid), { onboardingSeen: true }, { merge: true });
 }
 
 /* ── Books ───────────────────────────────────────────────────────────────── */

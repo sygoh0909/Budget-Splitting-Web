@@ -1,7 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
   UtensilsCrossed, ShoppingCart, Car, BedDouble, Compass, ShoppingBag, Ticket, HeartPulse, MoreHorizontal,
+  Landmark, Smartphone, QrCode, Wallet,
 } from "lucide-react";
+import type { PaymentMethodType } from "./types";
 
 export const personColors = [
   "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6",
@@ -54,3 +56,23 @@ export const accentColors = [
 ];
 
 export const DEFAULT_ACCENT = "#8b5cf6";
+
+export interface PaymentMethodPreset {
+  type: PaymentMethodType;
+  label: string;
+  icon: LucideIcon;
+}
+
+/** Presets shown when adding a payment method. "other" always sits last with an editable label. */
+export const paymentMethodPresets: PaymentMethodPreset[] = [
+  { type: "bank", label: "Bank Transfer", icon: Landmark },
+  { type: "tng", label: "Touch 'n Go eWallet", icon: Smartphone },
+  { type: "duitnow", label: "DuitNow QR", icon: QrCode },
+  { type: "grabpay", label: "GrabPay", icon: Wallet },
+  { type: "alipay", label: "Alipay", icon: Smartphone },
+  { type: "paynow", label: "PayNow", icon: QrCode },
+  { type: "other", label: "Other", icon: Wallet },
+];
+
+export const paymentMethodIcon = (type: PaymentMethodType): LucideIcon =>
+  paymentMethodPresets.find((p) => p.type === type)?.icon ?? Wallet;

@@ -64,6 +64,19 @@ export interface Book {
   maxSize: number | null;
 }
 
+export type PaymentMethodType = "bank" | "tng" | "duitnow" | "grabpay" | "alipay" | "paynow" | "other";
+
+export interface PaymentMethod {
+  id: string;
+  type: PaymentMethodType;
+  /** shown as the option's title, e.g. "Maybank" or a custom name for "other" */
+  label: string;
+  /** the QR code image, as a data URL (PNG, kept lossless so it stays scannable) */
+  qrImage: string;
+  /** optional text shown under the QR, e.g. an account number or phone number */
+  note: string | null;
+}
+
 export interface AppUser {
   uid: string;
   displayName: string;
@@ -71,4 +84,6 @@ export interface AppUser {
   photoUrl: string | null;
   createdAt: string;
   accentColor: string | null;
+  /** true once the first-run walkthrough has been shown to this account */
+  onboardingSeen: boolean;
 }

@@ -6,10 +6,11 @@ import { DEFAULT_ACCENT } from "@/lib/constants";
 import { hexToRgbTriplet } from "@/lib/util";
 import { auth } from "@/lib/firebase";
 import { subscribeAuth, waitForSignUp } from "@/lib/auth";
-import { createOrUpdateUser, ensurePersonalBook, getUser } from "@/lib/db";
+import { createOrUpdateUser, ensurePersonalBook, getUser, markOnboardingSeen } from "@/lib/db";
 import { ToastProvider } from "./ui/Toast";
 import { FullScreenSpinner } from "./ui/Spinner";
 import { LoginScreen } from "./LoginScreen";
+import { OnboardingTour } from "./OnboardingTour";
 
 /* ── Theme (accent colour + display name) ────────────────────────────────── */
 
@@ -68,9 +69,16 @@ interface AuthState {
   user: User | null;
   /** auth has resolved and the user's profile / personal book have been ensured */
   ready: boolean;
+  /** true for one session: the account has never dismissed the first-run walkthrough */
+  showOnboarding: boolean;
 }
 
-const AuthContext = createContext<AuthState>({ user: null, ready: false });
+const AuthContext = createContext<AuthState & { dismissOnboarding: () => void }>({
+  user: null,
+  ready: false,
+  showOnboarding: false,
+  dismissOnboarding: () => {},
+});
 
 /** The signed-in user. Only call inside <AuthGate> (i.e. any page). */
 export function useUser(): User {
@@ -79,9 +87,15 @@ export function useUser(): User {
   return user;
 }
 
+/** Whether to show the first-run walkthrough, and how to dismiss it for good. */
+export function useOnboarding() {
+  const { showOnboarding, dismissOnboarding } = useContext(AuthContext);
+  return { show: showOnboarding, dismiss: dismissOnboarding };
+}
+
 function AuthProvider({ children }: { children: ReactNode }) {
   const { setAccent, setUserName } = useTheme();
-  const [state, setState] = useState<AuthState>({ user: null, ready: false });
+  const [state, setState] = useState<AuthState>({ user: null, ready: false, showOnboarding: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -89,11 +103,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribeAuth(async (fbUser) => {
       if (!fbUser) {
         setUserName("");
-        if (!cancelled) setState({ user: null, ready: true });
+        if (!cancelled) setState({ user: null, ready: true, showOnboarding: false });
         return;
       }
 
-      if (!cancelled) setState({ user: fbUser, ready: false });
+      if (!cancelled) setState({ user: fbUser, ready: false, showOnboarding: false });
+      let showOnboarding = false;
       try {
         await waitForSignUp();
         try {
@@ -115,11 +130,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
         const profile = await getUser(current.uid);
         setUserName(profile?.displayName || current.displayName || "");
         if (profile?.accentColor) setAccent(profile.accentColor);
+        showOnboarding = !profile?.onboardingSeen;
       } catch (err) {
         // Don't leave the user on an infinite spinner if Firestore rejects us
         console.error("Failed to initialise user profile", err);
       }
-      if (!cancelled) setState({ user: auth.currentUser ?? fbUser, ready: true });
+      if (!cancelled) setState({ user: auth.currentUser ?? fbUser, ready: true, showOnboarding });
     });
 
     return () => {
@@ -128,15 +144,27 @@ function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [setAccent, setUserName]);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  const dismissOnboarding = useCallback(() => {
+    setState((prev) => ({ ...prev, showOnboarding: false }));
+    if (state.user) markOnboardingSeen(state.user.uid).catch((err) => console.error("Failed to save onboarding flag", err));
+  }, [state.user]);
+
+  const value = useMemo(() => ({ ...state, dismissOnboarding }), [state, dismissOnboarding]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 /** Shows a spinner while auth resolves, the login screen when signed out, else the app. */
 function AuthGate({ children }: { children: ReactNode }) {
-  const { user, ready } = useContext(AuthContext);
+  const { user, ready, showOnboarding } = useContext(AuthContext);
   if (!ready) return <FullScreenSpinner />;
   if (!user) return <LoginScreen />;
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {showOnboarding && <OnboardingTour />}
+    </>
+  );
 }
 
 export function Providers({ children }: { children: ReactNode }) {

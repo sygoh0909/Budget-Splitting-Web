@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, ReceiptText } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, QrCode, ReceiptText } from "lucide-react";
 import type { Book, Expense, Person } from "@/lib/types";
 import { computeBalances, computeGrossCredit, computeOwedToPerson, computePairwiseDebts, EPS } from "@/lib/split";
+import { getPaymentMethods } from "@/lib/db";
+import type { PaymentMethod } from "@/lib/types";
+import { PaymentQrModal } from "./PaymentQrModal";
 import { money, withAlpha } from "@/lib/util";
 import { Avatar } from "./ui/Avatar";
 
@@ -43,6 +46,17 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
   const [expandedPair, setExpandedPair] = useState<string | null>(null);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
   const [settling, setSettling] = useState<string | null>(null);
+  const [payFor, setPayFor] = useState<{ creditorId: string; creditorName: string; amount: number } | null>(null);
+  const [methodsCache, setMethodsCache] = useState<Record<string, PaymentMethod[]>>({});
+
+  function openPay(creditorId: string, creditorName: string, amount: number) {
+    setPayFor({ creditorId, creditorName, amount });
+    if (!(creditorId in methodsCache)) {
+      getPaymentMethods(creditorId)
+        .then((ms) => setMethodsCache((prev) => ({ ...prev, [creditorId]: ms })))
+        .catch(() => setMethodsCache((prev) => ({ ...prev, [creditorId]: [] })));
+    }
+  }
 
   const balances = computeBalances(book.people, expenses);
   const getPerson = (id: string) => book.people.find((p) => p.id === id) ?? book.deletedPeople.find((p) => p.id === id);
@@ -138,6 +152,16 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                     <Avatar name={creditor.name} color={creditor.color} size={28} />
                     <span className="truncate text-[13px] font-semibold">{creditor.name}</span>
                   </button>
+                  {!creditorIn.isPlaceholder && (
+                    <button
+                      onClick={() => openPay(d.creditorId, creditor.name, d.net)}
+                      aria-label={`Pay ${creditor.name}`}
+                      title={`Pay ${creditor.name}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-card2 text-accent transition hover:brightness-125"
+                    >
+                      <QrCode size={13} />
+                    </button>
+                  )}
                   {canSettle && (
                     <button
                       disabled={settling === d.pairKey}
@@ -179,6 +203,16 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
           })}
         </div>
       </div>
+
+      {payFor && (
+        <PaymentQrModal
+          payeeName={payFor.creditorName}
+          amount={payFor.amount}
+          currency={book.currency}
+          methods={methodsCache[payFor.creditorId]}
+          onClose={() => setPayFor(null)}
+        />
+      )}
 
       {isOwed.length > 0 && (
         <div>

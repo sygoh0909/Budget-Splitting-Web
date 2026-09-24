@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "firebase/auth";
-import { Bell, BellOff, Check, ChevronRight, LogOut, MessageSquare, Palette, Settings, User, X, type LucideIcon } from "lucide-react";
+import { Bell, BellOff, Check, ChevronRight, CreditCard, LogOut, MessageSquare, Palette, Settings, User, X, type LucideIcon } from "lucide-react";
+import { PaymentMethodsSection } from "./PaymentMethodsSection";
+import { getPaymentMethods } from "@/lib/db";
+import type { PaymentMethod } from "@/lib/types";
 import { useTheme, useUser } from "./Providers";
 import { useToast } from "./ui/Toast";
 import { AppHeader, PageShell } from "./ui/AppHeader";
@@ -13,7 +16,7 @@ import { createOrUpdateUser, saveAccentColor } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { initialsOf } from "@/lib/util";
 
-type Section = "home" | "profile" | "notifications" | "appearance" | "settings" | "feedback";
+type Section = "home" | "profile" | "notifications" | "appearance" | "payments" | "settings" | "feedback";
 
 export function ProfileScreen() {
   const router = useRouter();
@@ -28,6 +31,11 @@ export function ProfileScreen() {
   const [pending, setPending] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+
+  useEffect(() => {
+    getPaymentMethods(user.uid).then(setMethods).catch(console.error);
+  }, [user.uid]);
 
   const previewAccent = pending ?? accent;
 
@@ -74,6 +82,7 @@ export function ProfileScreen() {
     { icon: User, label: "Edit Profile", onClick: () => { setNameDraft(userName); setSection("profile"); } },
     { icon: Bell, label: "Notifications", onClick: () => setSection("notifications") },
     { icon: Palette, label: "Appearance", onClick: () => { setPending(null); setSaved(false); setSection("appearance"); } },
+    { icon: CreditCard, label: "Payment Methods", onClick: () => setSection("payments") },
     { icon: Settings, label: "Settings", onClick: () => setSection("settings") },
     { icon: MessageSquare, label: "Send Feedback", onClick: () => setSection("feedback") },
     { icon: LogOut, label: "Sign Out", onClick: doSignOut },
@@ -175,6 +184,15 @@ export function ProfileScreen() {
             <button onClick={saveAccent} disabled={saving || saved || !pending} className="btn-primary mt-7 w-full !py-3.5">
               {saving ? <Spinner size={20} className="!border-white !border-t-transparent" /> : saved ? <><Check size={16} /> Saved</> : "Save"}
             </button>
+          </div>
+        )}
+
+        {section === "payments" && (
+          <div>
+            <Heading kicker="get paid back" title="Payment Methods" />
+            <div className="mt-7">
+              <PaymentMethodsSection uid={user.uid} methods={methods} onChange={setMethods} />
+            </div>
           </div>
         )}
 
