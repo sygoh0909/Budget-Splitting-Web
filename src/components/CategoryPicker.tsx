@@ -50,12 +50,12 @@ export function CategoryPicker({ value, onChange, ariaLabel }: CategoryPickerPro
                     onChange(c);
                     setOpen(false);
                   }}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl py-3 text-[11px] outline-none transition focus-visible:ring-1 focus-visible:ring-accent/60 ${
+                  className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] outline-none transition focus-visible:ring-1 focus-visible:ring-accent/60 ${
                     selected ? "bg-accent/15 text-accent ring-1 ring-accent/40" : "bg-card2 text-muted hover:brightness-125"
                   }`}
                 >
-                  <CIcon size={18} />
-                  {c}
+                  <CIcon size={18} className="shrink-0" />
+                  <span className="w-full break-words text-center leading-tight">{c}</span>
                 </button>
               );
             })}

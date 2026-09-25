@@ -39,6 +39,25 @@ textarea::placeholder {
   color: #48484a;
 }
 
+/*
+ * iOS Safari (and some Android browsers) zoom the whole page in when a form
+ * field with a computed font-size under 16px receives focus — that's the
+ * "auto enlarge when typing" behaviour. Force every text field to render at
+ * 16px on small screens so focusing never triggers that zoom, regardless of
+ * the compact text sizes ("text-sm", "text-[13px]", etc.) individual fields
+ * use. The :not([...]) clauses are just a specificity bump so this wins over
+ * those per-field Tailwind utilities without needing to touch every one of
+ * them. Desktop/tablet sizes (≥641px, where the zoom bug doesn't happen)
+ * keep whatever size each field already had.
+ */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select:not([multiple]),
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 @layer components {
   .field {
     @apply w-full rounded-xl bg-card2 px-4 py-3 text-[15px] text-white outline-none ring-1 ring-transparent transition focus:ring-accent/60;

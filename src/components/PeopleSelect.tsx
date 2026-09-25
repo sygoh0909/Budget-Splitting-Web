@@ -15,6 +15,14 @@ interface PeopleSelectProps {
   onChange: (ids: string[]) => void;
   placeholder?: string;
   ariaLabel: string;
+  /**
+   * true (default): multi-select checklist for "who's this split between",
+   * with an "Everyone" / "Clear" footer.
+   * false: pick exactly one person (e.g. "Paid by") — same dropdown, but
+   * choosing an option replaces the selection and closes the menu, and the
+   * "Everyone" / "Clear" footer is omitted.
+   */
+  multiple?: boolean;
 }
 
 interface Pos {
@@ -33,7 +41,7 @@ const MAX_LIST_HEIGHT = 280;
  * Multi-select (a shared starter can be split three ways), rendered as a listbox of
  * checkbox rows — instead of one chip per person — so it stays compact with any group size.
  */
-export function PeopleSelect({ people, extraPeople = [], value, onChange, placeholder = "Select people", ariaLabel }: PeopleSelectProps) {
+export function PeopleSelect({ people, extraPeople = [], value, onChange, placeholder = "Select people", ariaLabel, multiple = true }: PeopleSelectProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Pos | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -43,7 +51,7 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
   const selectedExtras = extraPeople.filter((p) => value.includes(p.id));
   const options = [...people, ...selectedExtras];
   const selected = options.filter((p) => value.includes(p.id));
-  const allSelected = people.length > 1 && people.every((p) => value.includes(p.id));
+  const allSelected = multiple && people.length > 1 && people.every((p) => value.includes(p.id));
 
   const summary =
     selected.length === 0
@@ -103,6 +111,12 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
   }, [open, pos !== null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggle(id: string) {
+    if (!multiple) {
+      // single-select: choosing an option replaces the value and closes the menu
+      onChange([id]);
+      close(true);
+      return;
+    }
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   }
 
@@ -168,10 +182,12 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
             ref={listRef}
             id={listId}
             role="listbox"
-            aria-multiselectable="true"
+            aria-multiselectable={multiple}
             aria-label={ariaLabel}
             onKeyDown={onListKeyDown}
-            className="fixed z-[70] overflow-y-auto rounded-xl bg-card2 py-1 shadow-2xl ring-1 ring-line"
+            // Portaled to document.body, so it's a true sibling of the onboarding tour's overlay (z-[90])
+            // rather than nested inside it — needs a higher z-index to stay clickable during the tour's preview steps.
+            className="fixed z-[95] overflow-y-auto rounded-xl bg-card2 py-1 shadow-2xl ring-1 ring-line"
             style={{ left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxHeight }}
           >
             {options.map((p) => {
@@ -202,7 +218,7 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
                 </button>
               );
             })}
-            {people.length > 1 && (
+            {multiple && people.length > 1 && (
               <div className="mt-1 flex border-t border-line">
                 <button
                   type="button"

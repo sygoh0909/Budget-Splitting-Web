@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Percent, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Percent, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { AdditionalCharge, ChargeType, Expense, ExpenseItem, Person } from "@/lib/types";
 import { categories } from "@/lib/constants";
 import { CategoryPicker } from "./CategoryPicker";
@@ -317,20 +317,17 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
           </div>
           {people.length > 0 && (
             <div>
-              <label htmlFor="exp-paidby" className="label">Paid by</label>
-              <div className="relative mt-1.5">
-                <select
-                  id="exp-paidby"
-                  value={paidBy}
-                  onChange={(e) => setPaidBy(e.target.value)}
-                  className="field w-full appearance-none !pr-9 !text-[13px]"
-                >
-                  {paidByIsRemoved && <option value={paidBy}>{paidByPerson ? `${paidByPerson.name} (deleted)` : "(deleted)"}</option>}
-                  {people.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" />
+              <span id="exp-paidby-label" className="label">Paid by</span>
+              <div className="mt-1.5">
+                <PeopleSelect
+                  people={people}
+                  extraPeople={paidByIsRemoved && paidByPerson ? [paidByPerson] : []}
+                  value={paidBy ? [paidBy] : []}
+                  onChange={([id]) => setPaidBy(id ?? "")}
+                  multiple={false}
+                  placeholder="Select who paid"
+                  ariaLabel="Paid by"
+                />
               </div>
             </div>
           )}
