@@ -326,6 +326,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
                   value={paidBy ? [paidBy] : []}
                   onChange={([id]) => setPaidBy(id ?? "")}
                   multiple={false}
+                  triggerVariant="field"
                   placeholder="Select who paid"
                   ariaLabel="Paid by"
                 />

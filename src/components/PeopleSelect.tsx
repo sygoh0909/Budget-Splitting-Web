@@ -23,6 +23,12 @@ interface PeopleSelectProps {
    * "Everyone" / "Clear" footer is omitted.
    */
   multiple?: boolean;
+  /**
+   * "compact" (default): the small pill-style trigger used for item split.
+   * "field": trigger styled like the app's other form fields (e.g. "Paid by") —
+   * same dropdown panel either way, just a different closed-state look.
+   */
+  triggerVariant?: "compact" | "field";
 }
 
 interface Pos {
@@ -41,7 +47,7 @@ const MAX_LIST_HEIGHT = 280;
  * Multi-select (a shared starter can be split three ways), rendered as a listbox of
  * checkbox rows — instead of one chip per person — so it stays compact with any group size.
  */
-export function PeopleSelect({ people, extraPeople = [], value, onChange, placeholder = "Select people", ariaLabel, multiple = true }: PeopleSelectProps) {
+export function PeopleSelect({ people, extraPeople = [], value, onChange, placeholder = "Select people", ariaLabel, multiple = true, triggerVariant = "compact" }: PeopleSelectProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<Pos | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -160,11 +166,11 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
             setOpen(true);
           }
         }}
-        className={`flex w-full items-center gap-2 rounded-lg bg-black/40 px-3 py-2 text-left text-[13px] outline-none ring-1 transition focus-visible:ring-accent/70 ${
-          open ? "ring-accent/60" : summary ? "ring-line" : "ring-warn/40"
-        }`}
+        className={`flex w-full items-center gap-2 text-left outline-none ring-1 transition focus-visible:ring-accent/70 ${
+          triggerVariant === "field" ? "rounded-xl bg-card2 px-4 py-3 text-[13px]" : "rounded-lg bg-black/40 px-3 py-2 text-[13px]"
+        } ${open ? "ring-accent/60" : summary ? "ring-line" : "ring-warn/40"}`}
       >
-        {selected.length > 0 && (
+        {triggerVariant !== "field" && selected.length > 0 && (
           <span className="flex shrink-0 -space-x-1" aria-hidden>
             {selected.slice(0, 3).map((p) => (
               <span key={p.id} className="h-2.5 w-2.5 rounded-full ring-2 ring-[#0d0d0e]" style={{ background: p.color }} />
