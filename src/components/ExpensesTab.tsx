@@ -169,7 +169,7 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
       <div className="py-2 text-right text-base font-bold text-accent">{money(book.currency, totalSpend)} total</div>
 
       <div className="flex gap-2">
-        <button onClick={onAdd} className="btn-primary flex-1 !rounded-2xl !py-2.5 !text-sm">
+        <button onClick={onAdd} data-tour="add-expense-btn" className="btn-primary flex-1 !rounded-2xl !py-2.5 !text-sm">
           <Plus size={16} /> Add Expense
         </button>
         <input

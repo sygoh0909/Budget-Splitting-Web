@@ -189,7 +189,7 @@ function ItemRow({
       {people.length > 0 && (
         <div className="mt-2.5 flex items-center gap-2.5">
           <span className="shrink-0 text-[10px] uppercase tracking-wide text-dim">Split</span>
-          <div className="min-w-0 flex-1">
+          <div data-tour={index === 0 ? "expense-item-split-field" : undefined} className="min-w-0 flex-1">
             <PeopleSelect
               people={people}
               extraPeople={deletedPeople}
@@ -302,6 +302,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
           <label htmlFor="exp-title" className="label">Title</label>
           <input
             id="exp-title"
+            data-tour="expense-title-field"
             autoFocus={!seed}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -318,7 +319,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
           {people.length > 0 && (
             <div>
               <span id="exp-paidby-label" className="label">Paid by</span>
-              <div className="mt-1.5">
+              <div data-tour="expense-paidby-field" className="mt-1.5">
                 <PeopleSelect
                   people={people}
                   extraPeople={paidByIsRemoved && paidByPerson ? [paidByPerson] : []}
@@ -335,7 +336,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
 
         <div>
           <label htmlFor="exp-category" className="label">Category</label>
-          <div className="mt-1.5">
+          <div data-tour="expense-category-field" className="mt-1.5">
             <CategoryPicker value={category} onChange={changeCategory} ariaLabel="Expense category" />
           </div>
         </div>
@@ -404,7 +405,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
       {/* Footer */}
       <div className="flex gap-3 px-6 pb-6 pt-2">
         <button onClick={onClose} className="btn-secondary flex-1 !py-3.5">Cancel</button>
-        <button onClick={handleSave} disabled={!canSave || saving} className="btn-primary flex-1 !rounded-xl !py-3.5">
+        <button onClick={handleSave} disabled={!canSave || saving} data-tour="expense-save-btn" className="btn-primary flex-1 !rounded-xl !py-3.5">
           {saving ? "Saving…" : "Save"}
         </button>
       </div>

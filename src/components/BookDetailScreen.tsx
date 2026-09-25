@@ -150,6 +150,7 @@ export function BookDetailScreen({ bookId }: { bookId: string }) {
               key={t}
               role="tab"
               aria-selected={tab === t}
+              data-tour={t === "balances" ? "tab-balances" : undefined}
               onClick={() => setTab(t)}
               className={`relative rounded-xl px-4 py-1.5 text-[13px] capitalize transition ${tab === t ? "bg-accent font-bold text-white" : "text-muted hover:text-white"}`}
             >

@@ -55,8 +55,8 @@ export function HomeScreen() {
           <p className="py-20 text-center text-sm text-dim">No books yet — tap + to create or join one.</p>
         ) : (
           <div className="space-y-2">
-            {personal.map((b) => (
-              <BookCard key={b.id} book={b} />
+            {personal.map((b, idx) => (
+              <BookCard key={b.id} book={b} tourId={idx === 0 ? "home-book-card" : undefined} />
             ))}
             {personal.length > 0 && shared.length > 0 && <div className="my-2 h-px bg-line" />}
             {shared.map((b) => (

@@ -8,7 +8,7 @@ import { computeBalances, expenseTotal, isSettlement, EPS } from "@/lib/split";
 import { money, withAlpha, firstLetter } from "@/lib/util";
 import { useTheme } from "./Providers";
 
-export function BookCard({ book }: { book: Book }) {
+export function BookCard({ book, tourId }: { book: Book; tourId?: string }) {
   const { accent } = useTheme();
   const { data: allExpenses } = useExpenses(book.id);
 
@@ -23,7 +23,7 @@ export function BookCard({ book }: { book: Book }) {
   const shown = book.people.slice(0, 3);
 
   return (
-    <div className="flex overflow-hidden rounded-[14px] bg-card">
+    <div data-tour={tourId} className="flex overflow-hidden rounded-[14px] bg-card">
       <Link href={`/books/${book.id}`} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 transition hover:bg-card2/40">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
