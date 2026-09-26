@@ -147,11 +147,16 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                 {/* Mobile (<640px): names get their own full-width row so they're never squeezed to 1-2 chars */}
                 <div className="sm:hidden">
                   <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-expanded={open} className="flex w-full items-center gap-1.5 text-left">
-                    <Avatar name={debtor.name} color={debtor.color} size={26} />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{debtor.name}</span>
+                    <span className="flex min-w-0 shrink items-center gap-1.5">
+                      <Avatar name={debtor.name} color={debtor.color} size={26} />
+                      <span className="truncate text-[13px] font-semibold">{debtor.name}</span>
+                    </span>
                     <span className="shrink-0 text-[11px] text-muted">owes</span>
-                    <Avatar name={creditor.name} color={creditor.color} size={26} />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{creditor.name}</span>
+                    <span className="flex min-w-0 shrink items-center gap-1.5">
+                      <Avatar name={creditor.name} color={creditor.color} size={26} />
+                      <span className="truncate text-[13px] font-semibold">{creditor.name}</span>
+                    </span>
+                    <span className="flex-1" />
                     {open ? <ChevronUp size={15} className="shrink-0 text-dim" /> : <ChevronDown size={15} className="shrink-0 text-dim" />}
                   </button>
                   <div className="mt-2 flex items-center gap-2">
@@ -235,7 +240,7 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                     )}
                     {d.creditorLines.length > 0 && (
                       <>
-                        <p className="pt-1.5 text-[11px] text-dim">{creditor.name} owes {debtor.name} for:</p>
+                        <p className="pt-1.5 text-[11px] text-dim">Less — {creditor.name} owes {debtor.name} for:</p>
                         {d.creditorLines.map((l) => <LineRow key={l.expenseId} title={l.title} amount={l.amount} currency={book.currency} negative />)}
                       </>
                     )}
