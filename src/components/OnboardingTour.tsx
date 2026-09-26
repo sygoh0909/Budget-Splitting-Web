@@ -58,6 +58,20 @@ export function OnboardingTour() {
   const goNext = useCallback(() => setI((v) => Math.min(TOUR_STEPS.length - 1, v + 1)), []);
   const goBack = useCallback(() => setI((v) => Math.max(0, v - 1)), []);
 
+  // "Next" always makes real progress: for steps that need a real action (open the book,
+  // tap Add Expense, open Balances), simulate that click on the live element so the actual
+  // screen changes even if the person taps "Next" instead of the highlighted element.
+  const handleNext = useCallback(() => {
+    if (step.advanceOnClick && step.selector) {
+      const el = document.querySelector<HTMLElement>(step.selector);
+      if (el) {
+        el.click();
+        return; // the click listener below detects this and advances the step itself
+      }
+    }
+    goNext();
+  }, [step.advanceOnClick, step.selector, goNext]);
+
   // Locate this step's real target (if any) and keep tracking it — it may take a moment
   // to mount (e.g. right after navigating to a new page or opening the expense form).
   useEffect(() => {
@@ -119,12 +133,12 @@ export function OnboardingTour() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
-      else if (e.key === "ArrowRight") goNext();
+      else if (e.key === "ArrowRight") handleNext();
       else if (e.key === "ArrowLeft") goBack();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [dismiss, goNext, goBack]);
+  }, [dismiss, handleNext, goBack]);
 
   const spotlighting = hasTarget && !!rect;
   // Only the bookend (no-target) steps fully block the page; every other step just dims
@@ -190,7 +204,7 @@ export function OnboardingTour() {
             <button onClick={dismiss} className="text-[13px] text-muted">Skip</button>
           )}
           <span className="flex-1" />
-          <button onClick={() => (last ? dismiss() : goNext())} className="btn-primary !px-5 !py-2.5 !text-sm">
+          <button onClick={() => (last ? dismiss() : handleNext())} className="btn-primary !px-5 !py-2.5 !text-sm">
             {last ? "Get started" : "Next"}
             {!last && <ChevronRight size={15} />}
           </button>

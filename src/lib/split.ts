@@ -117,63 +117,99 @@ export interface PairwiseDebt {
   creditorLines: ReceiptLine[];
 }
 
-/** One entry per pair of people after cancelling debts in both directions. */
-export function computePairwiseDebts(expenses: Expense[]): PairwiseDebt[] {
-  // raw.get(a).get(b) = total a owes b, before cancelling
-  const raw = new Map<string, Map<string, number>>();
-  // lines.get(a).get(b) = per-expense breakdown of what a owes b
-  const lines = new Map<string, Map<string, Map<string, ReceiptLine>>>();
+interface DebtEvent {
+  expenseId: string;
+  title: string;
+  amount: number;
+  /** +1: canonical-first person owes canonical-second; -1: the reverse */
+  dir: 1 | -1;
+  isSettlement: boolean;
+}
 
-  for (const exp of expenses) {
+interface LedgerEntry {
+  dir: 1 | -1;
+  expenseId: string;
+  title: string;
+  amount: number;
+}
+
+/**
+ * One entry per pair of people, after settlements retire the specific debts they paid off.
+ *
+ * A settlement retires the *oldest* outstanding debt(s) between that pair first (FIFO),
+ * fully removing anything it pays off in full — so a debt that's already been settled
+ * never lingers in the breakdown next to the payment that cancelled it. A genuine crossing
+ * debt between two still-open expenses (e.g. "Alice owes Bob for dinner" and "Bob owes
+ * Alice for a taxi") is left as two separate lines rather than auto-merged, so the
+ * breakdown stays transparent about where the net number comes from — settlements are the
+ * only thing that actively retires a line.
+ */
+export function computePairwiseDebts(expenses: Expense[]): PairwiseDebt[] {
+  // Chronological order matters here: a settlement can only retire debts that already
+  // existed when it was made. Same-day ties put ordinary expenses before settlements,
+  // since you can only settle a debt that already exists.
+  const sorted = [...expenses].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return Number(isSettlement(a)) - Number(isSettlement(b));
+  });
+
+  // events per pair, in chronological order
+  const eventsByPair = new Map<string, { p: string; q: string; events: DebtEvent[] }>();
+  for (const exp of sorted) {
     const payerId = exp.paidBy;
+    const owedToPayer = new Map<string, number>();
     for (const item of exp.items) {
       if (item.splitWith.length === 0) continue;
       const share = itemTotalWithCharges(exp, item.amount) / item.splitWith.length;
       for (const pid of item.splitWith) {
         if (pid === payerId) continue;
-
-        if (!raw.has(pid)) raw.set(pid, new Map());
-        raw.get(pid)!.set(payerId, (raw.get(pid)!.get(payerId) ?? 0) + share);
-
-        if (!lines.has(pid)) lines.set(pid, new Map());
-        if (!lines.get(pid)!.has(payerId)) lines.get(pid)!.set(payerId, new Map());
-        const perExpense = lines.get(pid)!.get(payerId)!;
-        const prev = perExpense.get(exp.id);
-        perExpense.set(exp.id, {
-          expenseId: exp.id,
-          title: expenseDisplayTitle(exp),
-          amount: (prev?.amount ?? 0) + share,
-        });
+        owedToPayer.set(pid, (owedToPayer.get(pid) ?? 0) + share);
       }
+    }
+    for (const [pid, amount] of owedToPayer) {
+      if (amount <= 0) continue;
+      const key = [pid, payerId].sort();
+      const pairKey = `${key[0]}_${key[1]}`;
+      const dir: 1 | -1 = pid === key[0] ? 1 : -1;
+      if (!eventsByPair.has(pairKey)) eventsByPair.set(pairKey, { p: key[0], q: key[1], events: [] });
+      eventsByPair.get(pairKey)!.events.push({ expenseId: exp.id, title: expenseDisplayTitle(exp), amount, dir, isSettlement: isSettlement(exp) });
     }
   }
 
   const out: PairwiseDebt[] = [];
-  const visited = new Set<string>();
-  const linesFor = (a: string, b: string): ReceiptLine[] =>
-    Array.from(lines.get(a)?.get(b)?.values() ?? []);
-
-  for (const [a, owedTo] of raw) {
-    for (const b of owedTo.keys()) {
-      const key = [a, b].sort();
-      const pairKey = `${key[0]}_${key[1]}`;
-      if (visited.has(pairKey)) continue;
-      visited.add(pairKey);
-
-      const net = (raw.get(a)?.get(b) ?? 0) - (raw.get(b)?.get(a) ?? 0);
-      if (Math.abs(net) < EPS) continue;
-
-      const debtorId = net > 0 ? a : b;
-      const creditorId = net > 0 ? b : a;
-      out.push({
-        pairKey,
-        debtorId,
-        creditorId,
-        net: Math.abs(net),
-        debtorLines: linesFor(debtorId, creditorId),
-        creditorLines: linesFor(creditorId, debtorId),
-      });
+  for (const [pairKey, { p, q, events }] of eventsByPair) {
+    const ledger: LedgerEntry[] = [];
+    for (const ev of events) {
+      if (!ev.isSettlement) {
+        // a real expense never retires anything, only settlements do
+        ledger.push({ dir: ev.dir, expenseId: ev.expenseId, title: ev.title, amount: ev.amount });
+        continue;
+      }
+      // retire the oldest opposite-direction entries first
+      let remaining = ev.amount;
+      for (let i = 0; remaining > EPS && i < ledger.length; i++) {
+        if (ledger[i].dir === ev.dir) continue;
+        const cancel = Math.min(remaining, ledger[i].amount);
+        ledger[i].amount -= cancel;
+        remaining -= cancel;
+      }
+      for (let j = ledger.length - 1; j >= 0; j--) if (ledger[j].amount <= EPS) ledger.splice(j, 1);
+      // any leftover (e.g. an overpayment) becomes its own entry
+      if (remaining > EPS) ledger.push({ dir: ev.dir, expenseId: ev.expenseId, title: ev.title, amount: remaining });
     }
+
+    const net = ledger.reduce((s, l) => s + l.dir * l.amount, 0);
+    if (Math.abs(net) < EPS) continue;
+    const debtorDir: 1 | -1 = net > 0 ? 1 : -1;
+    const toLine = ({ expenseId, title, amount }: LedgerEntry): ReceiptLine => ({ expenseId, title, amount });
+    out.push({
+      pairKey,
+      debtorId: net > 0 ? p : q,
+      creditorId: net > 0 ? q : p,
+      net: Math.abs(net),
+      debtorLines: ledger.filter((l) => l.dir === debtorDir).map(toLine),
+      creditorLines: ledger.filter((l) => l.dir === -debtorDir as 1 | -1).map(toLine),
+    });
   }
   return out;
 }
