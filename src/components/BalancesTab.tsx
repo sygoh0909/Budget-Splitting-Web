@@ -192,7 +192,7 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                     )}
                     {d.creditorLines.length > 0 && (
                       <>
-                        <p className="pt-1.5 text-[11px] text-dim">Minus {creditor.name}'s own debt (already netted off):</p>
+                        <p className="pt-1.5 text-[11px] text-dim">Less — {creditor.name} owes {debtor.name} for:</p>
                         {d.creditorLines.map((l) => <LineRow key={l.expenseId} title={l.title} amount={l.amount} currency={book.currency} negative />)}
                       </>
                     )}
