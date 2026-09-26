@@ -60,12 +60,15 @@ export function OnboardingTour() {
 
   // "Next" always makes real progress: for steps that need a real action (open the book,
   // tap Add Expense, open Balances), simulate that click on the live element so the actual
-  // screen changes even if the person taps "Next" instead of the highlighted element.
+  // screen changes even if the person taps "Next" instead of the highlighted element. Some
+  // targets (e.g. the book card) carry data-tour on a wrapper div around the real link/button
+  // — clicking a parent never triggers a child's handler, so click the innermost one instead.
   const handleNext = useCallback(() => {
     if (step.advanceOnClick && step.selector) {
       const el = document.querySelector<HTMLElement>(step.selector);
       if (el) {
-        el.click();
+        const clickable = el.querySelector<HTMLElement>("a,button") ?? el;
+        clickable.click();
         return; // the click listener below detects this and advances the step itself
       }
     }
@@ -132,8 +135,13 @@ export function OnboardingTour() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dismiss();
-      else if (e.key === "ArrowRight") handleNext();
+      if (e.key === "Escape") return dismiss();
+      // don't hijack arrow keys while the person is editing text (e.g. the Title field) —
+      // only treat them as tour navigation when focus isn't in an editable field
+      const tag = (document.activeElement as HTMLElement | null)?.tagName;
+      const editing = tag === "INPUT" || tag === "TEXTAREA" || (document.activeElement as HTMLElement | null)?.isContentEditable;
+      if (editing) return;
+      if (e.key === "ArrowRight") handleNext();
       else if (e.key === "ArrowLeft") goBack();
     };
     document.addEventListener("keydown", onKey);
