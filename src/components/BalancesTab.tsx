@@ -144,20 +144,23 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
             const canSettle = userId === d.debtorId || debtorIn.isPlaceholder || creditorIn.isPlaceholder;
             return (
               <div key={d.pairKey} className="rounded-2xl bg-card p-3.5">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
-                    <Avatar name={debtor.name} color={debtor.color} size={28} />
-                    <span className="truncate text-[13px] font-semibold">{debtor.name}</span>
-                    <span className="px-1 text-xs text-muted">owes</span>
-                    <Avatar name={creditor.name} color={creditor.color} size={28} />
-                    <span className="truncate text-[13px] font-semibold">{creditor.name}</span>
-                  </button>
+                <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-expanded={open} className="flex w-full items-center gap-1.5 text-left">
+                  <Avatar name={debtor.name} color={debtor.color} size={26} />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{debtor.name}</span>
+                  <span className="shrink-0 text-[11px] text-muted">owes</span>
+                  <Avatar name={creditor.name} color={creditor.color} size={26} />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{creditor.name}</span>
+                  {open ? <ChevronUp size={15} className="shrink-0 text-dim" /> : <ChevronDown size={15} className="shrink-0 text-dim" />}
+                </button>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-danger">{money(book.currency, d.net)}</span>
+                  <span className="flex-1" />
                   {!creditorIn.isPlaceholder && (
                     <button
                       onClick={() => openPay(d.creditorId, creditor.name, d.net)}
                       aria-label={`Pay ${creditor.name}`}
                       title={`Pay ${creditor.name}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-card2 text-accent transition hover:brightness-125"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-card2 text-accent transition hover:brightness-125"
                     >
                       <QrCode size={13} />
                     </button>
@@ -172,15 +175,11 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                       }}
                       aria-label={`Mark ${debtor.name}'s payment to ${creditor.name} as settled`}
                       title="Mark as settled"
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-accent disabled:opacity-40"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-accent disabled:opacity-40"
                     >
                       <Check size={13} />
                     </button>
                   )}
-                  <span className="text-[13px] font-bold text-danger">{money(book.currency, d.net)}</span>
-                  <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-label="Toggle details" className="text-dim">
-                    {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                  </button>
                 </div>
                 {open && (
                   <div className="mt-2.5 space-y-1">
