@@ -79,7 +79,9 @@ export function PeopleSelect({ people, extraPeople = [], value, onChange, placeh
     const above = r.top - GAP - 8;
     const wantsHeight = Math.min(MAX_LIST_HEIGHT, options.length * 40 + 52);
     const placeAbove = below < wantsHeight && above > below;
-    const width = Math.max(r.width, 220);
+    // Match the trigger's own width exactly, so the panel lines up with its column at any
+    // screen size instead of staying desktop-wide when the column itself has shrunk.
+    const width = r.width;
     const left = Math.min(Math.max(8, r.left), window.innerWidth - width - 8);
     setPos(
       placeAbove
