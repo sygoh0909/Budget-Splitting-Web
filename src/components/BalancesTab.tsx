@@ -149,12 +149,12 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                   <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-expanded={open} className="flex w-full items-center gap-1.5 text-left">
                     <span className="flex min-w-0 shrink items-center gap-1.5">
                       <Avatar name={debtor.name} color={debtor.color} size={26} />
-                      <span className="truncate text-[13px] font-semibold">{debtor.name}</span>
+                      <span className="truncate text-[13px] font-semibold leading-none">{debtor.name}</span>
                     </span>
-                    <span className="shrink-0 text-[11px] text-muted">owes</span>
+                    <span className="shrink-0 text-[11px] leading-none text-muted">owes</span>
                     <span className="flex min-w-0 shrink items-center gap-1.5">
                       <Avatar name={creditor.name} color={creditor.color} size={26} />
-                      <span className="truncate text-[13px] font-semibold">{creditor.name}</span>
+                      <span className="truncate text-[13px] font-semibold leading-none">{creditor.name}</span>
                     </span>
                     <span className="flex-1" />
                     {open ? <ChevronUp size={15} className="shrink-0 text-dim" /> : <ChevronDown size={15} className="shrink-0 text-dim" />}
@@ -194,10 +194,10 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
                 <div className="hidden items-center gap-2 sm:flex">
                   <button onClick={() => setExpandedPair(open ? null : d.pairKey)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                     <Avatar name={debtor.name} color={debtor.color} size={28} />
-                    <span className="truncate text-[13px] font-semibold">{debtor.name}</span>
-                    <span className="px-1 text-xs text-muted">owes</span>
+                    <span className="truncate text-[13px] font-semibold leading-none">{debtor.name}</span>
+                    <span className="px-1 text-xs leading-none text-muted">owes</span>
                     <Avatar name={creditor.name} color={creditor.color} size={28} />
-                    <span className="truncate text-[13px] font-semibold">{creditor.name}</span>
+                    <span className="truncate text-[13px] font-semibold leading-none">{creditor.name}</span>
                   </button>
                   {!creditorIn.isPlaceholder && (
                     <button

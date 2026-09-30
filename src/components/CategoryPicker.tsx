@@ -36,7 +36,7 @@ export function CategoryPicker({ value, onChange, ariaLabel }: CategoryPickerPro
           <h2 id="category-picker-title" className="text-[13px] font-semibold text-white">
             Category
           </h2>
-          <div className="mt-4 grid grid-cols-3 gap-2.5" role="radiogroup" aria-label={ariaLabel}>
+          <div className="mt-4 grid grid-cols-3 gap-2.5" role="radiogroup" aria-label={ariaLabel} data-tour="category-modal-open">
             {categories.map((c) => {
               const CIcon = categoryIcons[c];
               const selected = c === value;

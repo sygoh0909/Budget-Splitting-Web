@@ -164,6 +164,7 @@ function ItemRow({
           onChange={(e) => onChange({ ...item, title: e.target.value })}
           placeholder="Item name..."
           aria-label={`Item ${index + 1} name`}
+          data-tour={index === 0 ? "expense-item-title-field" : undefined}
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
         <span className="text-[13px] text-muted">{currency}</span>
@@ -290,7 +291,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
               <Trash2 size={20} />
             </button>
           )}
-          <button onClick={onClose} aria-label="Close" className="text-[#666] transition hover:text-white">
+          <button onClick={onClose} aria-label="Close" data-tour="expense-modal-close" className="text-[#666] transition hover:text-white">
             <X size={20} />
           </button>
         </div>
