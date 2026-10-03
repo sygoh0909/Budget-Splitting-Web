@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "firebase/auth";
-import { Bell, BellOff, Check, ChevronRight, CreditCard, LogOut, MessageSquare, Palette, Settings, User, X, type LucideIcon } from "lucide-react";
+import { Bell, BellOff, Check, ChevronDown, ChevronRight, CreditCard, GraduationCap, LogOut, MessageSquare, Palette, Play, Settings, User, X, type LucideIcon } from "lucide-react";
 import { PaymentMethodsSection } from "./PaymentMethodsSection";
 import { getPaymentMethods } from "@/lib/db";
 import type { PaymentMethod } from "@/lib/types";
-import { useTheme, useUser } from "./Providers";
+import { useOnboarding, useTheme, useUser } from "./Providers";
 import { useToast } from "./ui/Toast";
 import { AppHeader, PageShell } from "./ui/AppHeader";
 import { Spinner } from "./ui/Spinner";
@@ -16,12 +16,65 @@ import { createOrUpdateUser, saveAccentColor } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { initialsOf } from "@/lib/util";
 
-type Section = "home" | "profile" | "notifications" | "appearance" | "payments" | "settings" | "feedback";
+type Section = "home" | "tutorial" | "profile" | "notifications" | "appearance" | "payments" | "settings" | "feedback";
+
+
+const TUTORIAL_TOPICS: { title: string; steps: string[] }[] = [
+  {
+    title: "Add an expense",
+    steps: [
+      "Open a book and tap Add Expense.",
+      "Give it a title, choose who paid and pick a category.",
+      "Add one or more items, each with its own amount.",
+      "Tap Save to log it.",
+    ],
+  },
+  {
+    title: "Split an item",
+    steps: [
+      "On each item, open the Split field.",
+      "Tick the people it should be split between, or choose Everyone.",
+      "Items can be split differently, e.g. a solo coffee vs. a shared meal.",
+    ],
+  },
+  {
+    title: "See who owes whom",
+    steps: [
+      "Open a book and tap the Balances tab.",
+      "Everything is netted out automatically, so you see the simplest payments to settle up.",
+    ],
+  },
+  {
+    title: "Create or join a shared book",
+    steps: [
+      "On the home screen tap + and choose Create or Join.",
+      "Create a book, then share its code with friends.",
+      "To join, enter a code. The owner approves your request.",
+    ],
+  },
+  {
+    title: "Get paid back",
+    steps: [
+      "Go to Profile → Payment Methods.",
+      "Add a bank or e-wallet QR code.",
+      "People who owe you can then pay you straight from the app.",
+    ],
+  },
+  {
+    title: "Personalise the app",
+    steps: [
+      "Profile → Edit Profile to change your display name.",
+      "Profile → Appearance to pick an accent colour.",
+    ],
+  },
+];
 
 export function ProfileScreen() {
   const router = useRouter();
   const user = useUser();
   const toast = useToast();
+  const { start: startTour } = useOnboarding();
+  const [openTopic, setOpenTopic] = useState<number | null>(null);
   const { accent, userName, setAccent, setUserName } = useTheme();
 
   const [section, setSection] = useState<Section>("home");
@@ -83,6 +136,7 @@ export function ProfileScreen() {
     { icon: Bell, label: "Notifications", onClick: () => setSection("notifications") },
     { icon: Palette, label: "Appearance", onClick: () => { setPending(null); setSaved(false); setSection("appearance"); } },
     { icon: CreditCard, label: "Payment Methods", onClick: () => setSection("payments") },
+    { icon: GraduationCap, label: "Tutorial", onClick: () => { setOpenTopic(null); setSection("tutorial"); } },
     { icon: Settings, label: "Settings", onClick: () => setSection("settings") },
     { icon: MessageSquare, label: "Send Feedback", onClick: () => setSection("feedback") },
     { icon: LogOut, label: "Sign Out", onClick: doSignOut },
@@ -118,6 +172,46 @@ export function ProfileScreen() {
               ))}
             </div>
             <p className="mt-8 text-[11px] text-dim">SplitBudget · v1.0.0</p>
+          </div>
+        )}
+
+        {section === "tutorial" && (
+          <div>
+            <Heading kicker="learn the app" title="Tutorial" />
+            <button
+              onClick={() => { startTour(); router.push("/"); }}
+              className="btn-primary mt-6 flex w-full items-center justify-center gap-2 !py-3.5"
+            >
+              <Play size={15} /> Start interactive walkthrough
+            </button>
+            <p className="label mt-8">Or jump to a topic</p>
+            <div className="mt-3 space-y-2">
+              {TUTORIAL_TOPICS.map((t, i) => {
+                const open = openTopic === i;
+                return (
+                  <div key={t.title} className="overflow-hidden rounded-2xl bg-card">
+                    <button
+                      onClick={() => setOpenTopic(open ? null : i)}
+                      aria-expanded={open}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm"
+                    >
+                      <span className="flex-1 font-semibold">{t.title}</span>
+                      <ChevronDown size={15} className={`text-dim transition ${open ? "rotate-180" : ""}`} />
+                    </button>
+                    {open && (
+                      <ol className="space-y-2 px-4 pb-4 text-[13px] leading-relaxed text-muted">
+                        {t.steps.map((step, n) => (
+                          <li key={n} className="flex gap-2.5">
+                            <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">{n + 1}</span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

@@ -171,10 +171,11 @@ export function OnboardingTour() {
   const blocking = !hasTarget;
   // A step only ever shows "Next" when it's not gated, or once its gate is satisfied — a
   // gated step with autoAdvance never shows it at all, since the click itself is the only way through.
-  const showNext = !step.gate || (satisfied && !(step.gate === "click" && step.autoAdvance));
+  const targetMissing = hasTarget && !rect;
+  const showNext = !step.gate || targetMissing || (satisfied && !(step.gate === "click" && step.autoAdvance));
 
   return createPortal(
-    <div className="fixed inset-0 z-[200]" aria-live="polite">
+    <div className="pointer-events-none fixed inset-0 z-[200]" aria-live="polite">
       {spotlighting && rect ? (
         <div
           className="fixed rounded-2xl ring-2 ring-accent transition-[top,left,width,height] duration-300 ease-out"
@@ -188,14 +189,14 @@ export function OnboardingTour() {
           }}
         />
       ) : (
-        !suppressDim && <div className={`fixed inset-0 bg-black/80 ${blocking ? "" : "pointer-events-none"}`} />
+        !suppressDim && <div className={`fixed inset-0 bg-black/80 ${blocking ? "pointer-events-auto" : "pointer-events-none"}`} />
       )}
 
       <div
         role="dialog"
         aria-modal={blocking}
         aria-labelledby="tour-title"
-        className="fixed flex flex-col overflow-hidden rounded-2xl bg-card p-5 shadow-2xl ring-1 ring-line"
+        className="pointer-events-auto fixed flex flex-col overflow-hidden rounded-2xl bg-card p-5 shadow-2xl ring-1 ring-line"
         style={{
           left: pos.left,
           width: pos.width,

@@ -73,11 +73,12 @@ interface AuthState {
   showOnboarding: boolean;
 }
 
-const AuthContext = createContext<AuthState & { dismissOnboarding: () => void }>({
+const AuthContext = createContext<AuthState & { dismissOnboarding: () => void; startTour: () => void }>({
   user: null,
   ready: false,
   showOnboarding: false,
   dismissOnboarding: () => {},
+  startTour: () => {},
 });
 
 /** The signed-in user. Only call inside <AuthGate> (i.e. any page). */
@@ -89,8 +90,8 @@ export function useUser(): User {
 
 /** Whether to show the first-run walkthrough, and how to dismiss it for good. */
 export function useOnboarding() {
-  const { showOnboarding, dismissOnboarding } = useContext(AuthContext);
-  return { show: showOnboarding, dismiss: dismissOnboarding };
+  const { showOnboarding, dismissOnboarding, startTour } = useContext(AuthContext);
+  return { show: showOnboarding, dismiss: dismissOnboarding, start: startTour };
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
@@ -149,7 +150,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
     if (state.user) markOnboardingSeen(state.user.uid).catch((err) => console.error("Failed to save onboarding flag", err));
   }, [state.user]);
 
-  const value = useMemo(() => ({ ...state, dismissOnboarding }), [state, dismissOnboarding]);
+  // replay the walkthrough on demand (Profile → Tutorial) without touching the saved flag
+  const startTour = useCallback(() => setState((prev) => ({ ...prev, showOnboarding: true })), []);
+
+  const value = useMemo(() => ({ ...state, dismissOnboarding, startTour }), [state, dismissOnboarding, startTour]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
