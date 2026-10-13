@@ -25,7 +25,7 @@ const TUTORIAL_TOPICS: { title: string; steps: string[] }[] = [
     steps: [
       "Open a book and tap Add Expense.",
       "Give it a title, choose who paid and pick a category.",
-      "Add one or more items, each with its own amount.",
+      "Add one or more items, each with a name and its own amount.",
       "Optionally add tax, service tax or a rounding adjustment — these are shared out in the same proportions as the items.",
       "Tap Save to log it.",
     ],
@@ -53,10 +53,11 @@ const TUTORIAL_TOPICS: { title: string; steps: string[] }[] = [
     title: "People tab",
     steps: [
       "Open a book and tap the People tab.",
-      "Add Placeholder adds someone who doesn't have an account yet. They (or you) can merge it into a real member later with the merge icon.",
+      "Tap Add Placeholder, type a name and tap Add — this adds someone who doesn't have an account yet. They (or you) can merge it into a real member later with the person icon on their card.",
       "In a shared book, Invite code copies the code friends use to join.",
       "Join requests from people rejoining appear at the top, where you can Approve or Deny.",
       "Each person shows what they've Paid and what they Should pay.",
+      "Tap the bin on someone's card to remove them. Their name stays on past expenses, but you can't remove anyone with unsettled payments.",
     ],
   },
   {

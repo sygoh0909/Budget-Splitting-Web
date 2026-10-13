@@ -22,6 +22,7 @@ export function PeopleTab({ book, expenses, onAddPlaceholder, onRemove, onClaim,
   const [name, setName] = useState("");
   const [copied, setCopied] = useState(false);
   const balances = computeBalances(book.people, expenses);
+  const firstPlaceholderId = book.people.find((p) => p.isPlaceholder)?.id;
 
   async function add() {
     if (!name.trim()) return;
@@ -43,8 +44,8 @@ export function PeopleTab({ book, expenses, onAddPlaceholder, onRemove, onClaim,
         <p className="text-xs text-muted">Add a placeholder person for someone who doesn&apos;t have an account yet. They can claim their spot later.</p>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <button onClick={() => setShowAdd(true)} className="btn-primary !rounded-2xl !py-2.5 !text-sm">
+      <div data-tour="people-actions" className="mb-4 flex gap-2">
+        <button onClick={() => setShowAdd(true)} data-tour="people-add-placeholder" className="btn-primary !rounded-2xl !py-2.5 !text-sm">
           <UserPlus size={16} /> Add Placeholder
         </button>
         {book.type === "shared" && (
@@ -84,11 +85,12 @@ export function PeopleTab({ book, expenses, onAddPlaceholder, onRemove, onClaim,
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
+            data-tour="placeholder-name-field"
             placeholder='Name (e.g. "Alex")'
             aria-label="Placeholder name"
             className="min-w-0 flex-1 bg-transparent text-sm outline-none"
           />
-          <button type="submit" className="rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white">Add</button>
+          <button type="submit" data-tour="placeholder-submit" className="rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white">Add</button>
           <button type="button" onClick={() => { setShowAdd(false); setName(""); }} className="text-muted" aria-label="Cancel">✕</button>
         </form>
       )}
@@ -101,10 +103,10 @@ export function PeopleTab({ book, expenses, onAddPlaceholder, onRemove, onClaim,
         </div>
       ) : (
         <div className="space-y-2">
-          {book.people.map((p) => {
+          {book.people.map((p, idx) => {
             const { paid, shouldPay } = computePersonSummary(p.id, balances[p.id] ?? 0, expenses);
             return (
-              <div key={p.id} className="flex items-center gap-4 rounded-2xl bg-card p-4">
+              <div key={p.id} data-tour={p.id === firstPlaceholderId ? "people-placeholder-card" : idx === 0 ? "people-first" : undefined} className="flex items-center gap-4 rounded-2xl bg-card p-4">
                 <Avatar name={p.name} color={p.color} size={44} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{p.name}</p>
@@ -114,14 +116,16 @@ export function PeopleTab({ book, expenses, onAddPlaceholder, onRemove, onClaim,
                     <span className="text-muted">Should pay: <span className={`font-medium ${shouldPay > 0.005 ? "text-danger" : "text-white"}`}>{money(book.currency, shouldPay)}</span></span>
                   </div>
                 </div>
-                {p.isPlaceholder && (
-                  <button onClick={() => onClaim(p)} aria-label={`Merge ${p.name} into a member`} title="Merge into a member" className="p-2 text-dim transition hover:text-white">
-                    <UserPlus size={15} />
+                <div data-tour={p.id === firstPlaceholderId ? "people-card-actions" : undefined} className="flex shrink-0 items-center">
+                  {p.isPlaceholder && (
+                    <button onClick={() => onClaim(p)} aria-label={`Merge ${p.name} into a member`} title="Merge into a member" className="p-2 text-dim transition hover:text-white">
+                      <UserPlus size={15} />
+                    </button>
+                  )}
+                  <button onClick={() => onRemove(p)} aria-label={`Remove ${p.name}`} className="p-2 text-dim transition hover:text-danger">
+                    <Trash2 size={15} />
                   </button>
-                )}
-                <button onClick={() => onRemove(p)} aria-label={`Remove ${p.name}`} className="p-2 text-dim transition hover:text-danger">
-                  <Trash2 size={15} />
-                </button>
+                </div>
               </div>
             );
           })}

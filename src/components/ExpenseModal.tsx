@@ -11,6 +11,7 @@ import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { useToast } from "./ui/Toast";
 import { PeopleSelect } from "./PeopleSelect";
+import { useOnboarding } from "./Providers";
 
 interface ExpenseModalProps {
   /** active members of the book */
@@ -154,6 +155,9 @@ function ItemRow({
   index: number;
 }) {
   const [amountText, setAmountText] = useState(item.amount > 0 ? String(item.amount) : "");
+  // during the walkthrough, always show the Equal / By portion switch so it can be taught
+  // even in a one-person personal book
+  const { show: tourActive } = useOnboarding();
   // "By portion" mode is local UI state so it stays on even when everyone is set to 0 parts
   const [portions, setPortions] = useState(hasCustomShares(item));
   const perPerson = item.splitWith.length > 0 && item.amount > 0 ? item.amount / item.splitWith.length : 0;
@@ -225,6 +229,7 @@ function ItemRow({
           }}
           placeholder="0"
           aria-label={`Item ${index + 1} amount`}
+          data-tour={index === 0 ? "expense-item-amount-field" : undefined}
           className="w-[72px] bg-transparent text-right text-sm font-semibold outline-none"
         />
         {canDelete && (
@@ -251,11 +256,11 @@ function ItemRow({
         </div>
       )}
 
-      {people.length > 1 && (
+      {(people.length > 1 || (tourActive && people.length > 0)) && (
         <div className="mt-2.5">
           <div className="flex items-center gap-2.5">
             <span className="w-[26px] shrink-0" aria-hidden />
-            <div className="flex rounded-lg bg-black/40 p-0.5 text-[11px]" role="group" aria-label={`Split type for item ${index + 1}`}>
+            <div data-tour={index === 0 ? "expense-item-split-mode" : undefined} className="flex rounded-lg bg-black/40 p-0.5 text-[11px]" role="group" aria-label={`Split type for item ${index + 1}`}>
               <button type="button" onClick={() => portions && togglePortions()} aria-pressed={!portions}
                 className={`rounded-md px-3 py-1 transition ${!portions ? "bg-accent font-semibold text-white" : "text-muted"}`}>Equal</button>
               <button type="button" onClick={() => !portions && togglePortions()} aria-pressed={portions}

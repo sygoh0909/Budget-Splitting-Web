@@ -60,6 +60,8 @@ export function OnboardingTour() {
   const [i, setI] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [satisfied, setSatisfied] = useState(false);
+  // the target has been absent for a while (so a gated step can't trap the person)
+  const [missingLong, setMissingLong] = useState(false);
   const clickSeenRef = useRef(false);
 
   const step = TOUR_STEPS[i];
@@ -92,6 +94,8 @@ export function OnboardingTour() {
   useEffect(() => {
     clickSeenRef.current = false;
     setSatisfied(false);
+    setMissingLong(false);
+    const startedAt = Date.now();
     let cancelled = false;
     let scrolledIntoView = false;
     let timer: number;
@@ -113,6 +117,7 @@ export function OnboardingTour() {
         }
       } else {
         setRect(null);
+        if (step.selector && Date.now() - startedAt > 3000) setMissingLong(true);
       }
       timer = window.setTimeout(tick, POLL_MS);
     };
@@ -171,7 +176,7 @@ export function OnboardingTour() {
   const blocking = !hasTarget;
   // A step only ever shows "Next" when it's not gated, or once its gate is satisfied — a
   // gated step with autoAdvance never shows it at all, since the click itself is the only way through.
-  const targetMissing = hasTarget && !rect;
+  const targetMissing = hasTarget && !rect && missingLong;
   const showNext = !step.gate || targetMissing || (satisfied && !(step.gate === "click" && step.autoAdvance));
 
   return createPortal(
