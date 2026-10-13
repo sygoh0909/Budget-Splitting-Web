@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Percent, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Minus, Percent, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { AdditionalCharge, ChargeType, Expense, ExpenseItem, Person } from "@/lib/types";
 import { categories } from "@/lib/constants";
 import { CategoryPicker } from "./CategoryPicker";
 import { generateUuid, money, todayISO } from "@/lib/util";
-import { chargesTotal, itemsTotal } from "@/lib/split";
+import { chargesTotal, hasCustomShares, itemFraction, itemWeight, itemWeightSum, itemsTotal } from "@/lib/split";
 import { Modal } from "./ui/Modal";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { useToast } from "./ui/Toast";
@@ -154,7 +154,33 @@ function ItemRow({
   index: number;
 }) {
   const [amountText, setAmountText] = useState(item.amount > 0 ? String(item.amount) : "");
+  const portions = hasCustomShares(item);
   const perPerson = item.splitWith.length > 0 && item.amount > 0 ? item.amount / item.splitWith.length : 0;
+  const allKnown = [...people, ...deletedPeople];
+  const nameOf = (id: string) => allKnown.find((p) => p.id === id);
+
+  /** change who's on the item; in portion mode keep the portions in step (new people start at 1 part) */
+  function changeSplitWith(splitWith: string[]) {
+    if (!portions) return onChange({ ...item, splitWith });
+    const shares: Record<string, number> = {};
+    for (const pid of splitWith) shares[pid] = item.shares?.[pid] ?? 1;
+    onChange({ ...item, splitWith, shares: splitWith.length > 0 ? shares : undefined });
+  }
+
+  function togglePortions() {
+    if (portions) {
+      const { shares: _drop, ...rest } = item;
+      return onChange(rest);
+    }
+    const shares: Record<string, number> = {};
+    for (const pid of item.splitWith) shares[pid] = 1;
+    onChange({ ...item, shares });
+  }
+
+  function setPortion(pid: string, value: number) {
+    const clamped = Math.max(0.5, Math.round(value * 100) / 100);
+    onChange({ ...item, shares: { ...item.shares, [pid]: clamped } });
+  }
 
   return (
     <div className="rounded-2xl bg-card2 p-3">
@@ -195,12 +221,57 @@ function ItemRow({
               people={people}
               extraPeople={deletedPeople}
               value={item.splitWith}
-              onChange={(splitWith) => onChange({ ...item, splitWith })}
+              onChange={changeSplitWith}
               placeholder="Select people"
               ariaLabel={`Who is item ${index + 1} split between`}
             />
           </div>
-          {perPerson > 0 && <span className="shrink-0 text-[11px] text-accent">{money(currency, perPerson)} each</span>}
+          {!portions && perPerson > 0 && <span className="shrink-0 text-[11px] text-accent">{money(currency, perPerson)} each</span>}
+        </div>
+      )}
+
+      {item.splitWith.length > 1 && (
+        <div className="mt-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="w-[26px] shrink-0" aria-hidden />
+            <div className="flex rounded-lg bg-black/40 p-0.5 text-[11px]" role="group" aria-label={`Split type for item ${index + 1}`}>
+              <button type="button" onClick={() => portions && togglePortions()} aria-pressed={!portions}
+                className={`rounded-md px-3 py-1 transition ${!portions ? "bg-accent font-semibold text-white" : "text-muted"}`}>Equal</button>
+              <button type="button" onClick={() => !portions && togglePortions()} aria-pressed={portions}
+                className={`rounded-md px-3 py-1 transition ${portions ? "bg-accent font-semibold text-white" : "text-muted"}`}>By portion</button>
+            </div>
+          </div>
+
+          {portions && (
+            <div className="mt-2.5 space-y-1.5 rounded-xl bg-black/30 p-2.5">
+              {item.splitWith.map((pid) => {
+                const person = nameOf(pid);
+                const w = itemWeight(item, pid);
+                const owed = item.amount * itemFraction(item, pid);
+                return (
+                  <div key={pid} className="flex items-center gap-2 text-[12px]">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: person?.color ?? "#48484a" }} aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-white">{person ? person.name : "(deleted)"}</span>
+                    <button type="button" onClick={() => setPortion(pid, w - 1)} disabled={w <= 0.5} aria-label={`Fewer parts for ${person?.name ?? "person"}`}
+                      className="flex h-6 w-6 items-center justify-center rounded-md bg-card text-muted transition hover:text-white disabled:opacity-30"><Minus size={12} /></button>
+                    <input
+                      inputMode="decimal"
+                      value={String(w)}
+                      onChange={(e) => { const n = parseFloat(cleanNumber(e.target.value)); if (n > 0) setPortion(pid, n); }}
+                      aria-label={`Parts for ${person?.name ?? "person"}`}
+                      className="w-9 rounded-md bg-card py-1 text-center text-[12px] font-semibold outline-none ring-1 ring-transparent focus:ring-accent/60"
+                    />
+                    <button type="button" onClick={() => setPortion(pid, w + 1)} aria-label={`More parts for ${person?.name ?? "person"}`}
+                      className="flex h-6 w-6 items-center justify-center rounded-md bg-card text-muted transition hover:text-white"><Plus size={12} /></button>
+                    <span className="w-[74px] shrink-0 text-right text-accent">{item.amount > 0 ? money(currency, owed) : "—"}</span>
+                  </div>
+                );
+              })}
+              <p className="pt-1 text-[10px] text-dim">
+                {itemWeightSum(item)} part{itemWeightSum(item) === 1 ? "" : "s"} in total. Each person pays their parts ÷ the total, and tax and charges follow the same split.
+              </p>
+            </div>
+          )}
         </div>
       )}
       {people.length > 0 && item.splitWith.length === 0 && (
@@ -220,7 +291,7 @@ export function ExpenseModal({ people, deletedPeople, currency, initial, prefill
   const [paidBy, setPaidBy] = useState(seed?.paidBy ?? people[0]?.id ?? "");
   const [note, setNote] = useState(seed?.note ?? "");
   const [category, setCategory] = useState(() => dominantSeedCategory(seed?.items));
-  const [items, setItems] = useState<ExpenseItem[]>(seed ? seed.items.map((i) => ({ ...i, splitWith: [...i.splitWith] })) : [newItem(category)]);
+  const [items, setItems] = useState<ExpenseItem[]>(seed ? seed.items.map((i) => ({ ...i, splitWith: [...i.splitWith], ...(i.shares ? { shares: { ...i.shares } } : {}) })) : [newItem(category)]);
   const [charges, setCharges] = useState<AdditionalCharge[]>(seed?.additionalCharges ?? []);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);

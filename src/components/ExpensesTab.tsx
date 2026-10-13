@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AlertCircle, ArrowRight, Banknote, CalendarDays, Camera, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Book, Expense } from "@/lib/types";
-import { dominantCategory, expenseDisplayTitle, expenseTotal, isSettlement } from "@/lib/split";
+import { dominantCategory, expenseDisplayTitle, expenseTotal, hasCustomShares, isSettlement, itemFraction, itemWeight } from "@/lib/split";
 import { categoryIcons } from "@/lib/constants";
 import { formatDate, money, monthName, todayISO, withAlpha, firstLetter } from "@/lib/util";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -120,6 +120,7 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
           <div className="border-t border-line p-3.5">
             <div className="space-y-2">
               {expense.items.map((item) => {
+                const custom = hasCustomShares(item);
                 const per = item.splitWith.length > 0 ? item.amount / item.splitWith.length : 0;
                 return (
                   <div key={item.id} className="rounded-xl bg-card2 p-2.5">
@@ -136,10 +137,11 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
                             <span key={pid}>
                               {i > 0 && ", "}
                               <span style={{ color: p?.color ?? "#48484a" }}>{name}</span>
+                              {custom && <span> {itemWeight(item, pid)}× · {money(book.currency, item.amount * itemFraction(item, pid))}</span>}
                             </span>
                           );
                         })}
-                        {per > 0 && <span> · {money(book.currency, per)} each</span>}
+                        {!custom && per > 0 && <span> · {money(book.currency, per)} each</span>}
                       </p>
                     ) : (
                       <p className="mt-1 text-[10px] text-warn">Not assigned</p>

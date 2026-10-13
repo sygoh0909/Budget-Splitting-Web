@@ -1,4 +1,4 @@
-import type { Expense, Person } from "./types";
+import type { Expense, ExpenseItem, Person } from "./types";
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Splitting maths — a direct port of the Flutter app's models.dart / balances UI.
@@ -8,10 +8,36 @@ import type { Expense, Person } from "./types";
  * proportion to their price:
  *
  *   chargeForItem = totalCharges × (item.amount / sum of all items)
- *   personPays    = (item.amount + chargeForItem) / number of people on the item
+ *   personPays    = (item.amount + chargeForItem) × (their parts / total parts on the item)
+ *
+ * By default everyone on an item has 1 part (an equal split); an item can instead carry
+ * custom `shares` (e.g. Alice 4 parts, Bob 1 part → Alice pays 4/5, Bob 1/5).
  * ────────────────────────────────────────────────────────────────────────── */
 
 export const EPS = 0.01;
+
+/** parts a person pays on an item (1 unless the item has a custom portion for them) */
+export function itemWeight(item: ExpenseItem, pid: string): number {
+  const w = item.shares?.[pid];
+  return typeof w === "number" && Number.isFinite(w) && w > 0 ? w : 1;
+}
+
+/** total parts across everyone on the item */
+export function itemWeightSum(item: ExpenseItem): number {
+  return item.splitWith.reduce((s, pid) => s + itemWeight(item, pid), 0);
+}
+
+/** the fraction (0–1) of an item that one person pays; 0 if they're not on it */
+export function itemFraction(item: ExpenseItem, pid: string): number {
+  if (!item.splitWith.includes(pid)) return 0;
+  const sum = itemWeightSum(item);
+  return sum > 0 ? itemWeight(item, pid) / sum : 0;
+}
+
+/** true when the item uses a custom portion split rather than an equal one */
+export function hasCustomShares(item: ExpenseItem): boolean {
+  return !!item.shares && Object.keys(item.shares).length > 0;
+}
 
 export function itemsTotal(e: Expense): number {
   return e.items.reduce((s, i) => s + i.amount, 0);
@@ -67,14 +93,11 @@ export function computeBalances(people: Person[], expenses: Expense[]): Record<s
 
   for (const exp of expenses) {
     for (const item of exp.items) {
-      const n = item.splitWith.length;
       const totalForItem = itemTotalWithCharges(exp, item.amount);
 
       if (exp.paidBy in bal) bal[exp.paidBy] += totalForItem;
-      if (n > 0) {
-        for (const pid of item.splitWith) {
-          if (pid in bal) bal[pid] -= totalForItem / n;
-        }
+      for (const pid of item.splitWith) {
+        if (pid in bal) bal[pid] -= totalForItem * itemFraction(item, pid);
       }
     }
   }
@@ -90,11 +113,12 @@ export function computeGrossCredit(expenses: Expense[]): Record<string, number> 
   for (const exp of expenses) {
     if (exp.title.startsWith("settlement:")) continue;
     for (const item of exp.items) {
-      const n = item.splitWith.length;
-      if (n === 0) continue;
-      const share = itemTotalWithCharges(exp, item.amount) / n;
-      const others = item.splitWith.filter((pid) => pid !== exp.paidBy).length;
-      if (others > 0) credit[exp.paidBy] = (credit[exp.paidBy] ?? 0) + share * others;
+      if (item.splitWith.length === 0) continue;
+      const total = itemTotalWithCharges(exp, item.amount);
+      const owedByOthers = item.splitWith
+        .filter((pid) => pid !== exp.paidBy)
+        .reduce((sum, pid) => sum + total * itemFraction(item, pid), 0);
+      if (owedByOthers > 0) credit[exp.paidBy] = (credit[exp.paidBy] ?? 0) + owedByOthers;
     }
   }
   return credit;
@@ -160,10 +184,10 @@ export function computePairwiseDebts(expenses: Expense[]): PairwiseDebt[] {
     const owedToPayer = new Map<string, number>();
     for (const item of exp.items) {
       if (item.splitWith.length === 0) continue;
-      const share = itemTotalWithCharges(exp, item.amount) / item.splitWith.length;
+      const total = itemTotalWithCharges(exp, item.amount);
       for (const pid of item.splitWith) {
         if (pid === payerId) continue;
-        owedToPayer.set(pid, (owedToPayer.get(pid) ?? 0) + share);
+        owedToPayer.set(pid, (owedToPayer.get(pid) ?? 0) + total * itemFraction(item, pid));
       }
     }
     for (const [pid, amount] of owedToPayer) {
@@ -230,9 +254,10 @@ export function computeOwedToPerson(personId: string, expenses: Expense[]): Debt
     if (exp.paidBy === personId) {
       for (const item of exp.items) {
         if (item.splitWith.length === 0) continue;
-        const share = itemTotalWithCharges(exp, item.amount) / item.splitWith.length;
+        const total = itemTotalWithCharges(exp, item.amount);
         for (const pid of item.splitWith) {
           if (pid === personId) continue;
+          const share = total * itemFraction(item, pid);
           owedToMe.set(pid, (owedToMe.get(pid) ?? 0) + share);
           if (!receipts.has(pid)) receipts.set(pid, new Map());
           const prev = receipts.get(pid)!.get(exp.id);
@@ -246,7 +271,7 @@ export function computeOwedToPerson(personId: string, expenses: Expense[]): Debt
     } else {
       for (const item of exp.items) {
         if (!item.splitWith.includes(personId)) continue;
-        const share = itemTotalWithCharges(exp, item.amount) / item.splitWith.length;
+        const share = itemTotalWithCharges(exp, item.amount) * itemFraction(item, personId);
         iOweThem.set(exp.paidBy, (iOweThem.get(exp.paidBy) ?? 0) + share);
       }
     }

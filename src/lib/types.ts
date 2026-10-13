@@ -13,6 +13,11 @@ export interface ExpenseItem {
   category: string;
   /** person ids sharing this item; empty = not assigned yet */
   splitWith: string[];
+  /**
+   * Optional "split by portions": person id → number of parts they pay. Missing / empty means
+   * an equal split (everyone counts as 1 part). A person not listed counts as 1 part.
+   */
+  shares?: Record<string, number>;
 }
 
 export type ChargeType = "tax" | "service_tax" | "rounding";

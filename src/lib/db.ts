@@ -80,6 +80,17 @@ function bookFromDoc(snap: DocumentSnapshot): Book {
   };
 }
 
+/** keeps only valid positive portions for people still on the item; omitted entirely when unused */
+function cleanShares(raw: unknown, splitWith: string[]): { shares?: Record<string, number> } {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, number> = {};
+  for (const pid of splitWith) {
+    const w = (raw as Record<string, unknown>)[pid];
+    if (typeof w === "number" && Number.isFinite(w) && w > 0) out[pid] = w;
+  }
+  return Object.keys(out).length > 0 ? { shares: out } : {};
+}
+
 function expenseFromDoc(snap: DocumentSnapshot): Expense {
   const d = snap.data() ?? {};
   return {
@@ -96,6 +107,7 @@ function expenseFromDoc(snap: DocumentSnapshot): Expense {
         amount: typeof i.amount === "number" ? i.amount : 0,
         category: i.category ?? "Misc",
         splitWith: Array.isArray(i.splitWith) ? [...i.splitWith] : [],
+        ...cleanShares(i.shares, Array.isArray(i.splitWith) ? i.splitWith : []),
       }),
     ),
     additionalCharges: ((d.additionalCharges as DocumentData[] | undefined) ?? []).map(
@@ -122,6 +134,7 @@ const expenseToMap = (e: Expense) => ({
     amount: i.amount,
     category: i.category,
     splitWith: i.splitWith,
+    ...cleanShares(i.shares, i.splitWith),
   })),
   additionalCharges: e.additionalCharges.map((c) => ({
     id: c.id,
@@ -350,13 +363,20 @@ export async function claimPlaceholder(bookId: string, placeholderId: string, cl
 
     const items = ((data.items as DocumentData[] | undefined) ?? []).map((i) => {
       const splitWith: string[] = Array.isArray(i.splitWith) ? [...i.splitWith] : [];
+      const shares: Record<string, number> | undefined =
+        i.shares && typeof i.shares === "object" ? { ...i.shares } : undefined;
       const idx = splitWith.indexOf(placeholderId);
       if (idx !== -1) {
+        // carry the placeholder's portion over to the person who claimed it
+        if (shares && placeholderId in shares) {
+          shares[claimerId] = (splitWith.includes(claimerId) ? shares[claimerId] ?? 1 : 0) + shares[placeholderId];
+          delete shares[placeholderId];
+        }
         if (splitWith.includes(claimerId)) splitWith.splice(idx, 1);
         else splitWith[idx] = claimerId;
         changed = true;
       }
-      return { ...i, splitWith };
+      return shares ? { ...i, splitWith, shares } : { ...i, splitWith };
     });
 
     if (changed) batch.update(d.ref, { paidBy, items });
