@@ -154,33 +154,54 @@ function ItemRow({
   index: number;
 }) {
   const [amountText, setAmountText] = useState(item.amount > 0 ? String(item.amount) : "");
-  const portions = hasCustomShares(item);
+  // "By portion" mode is local UI state so it stays on even when everyone is set to 0 parts
+  const [portions, setPortions] = useState(hasCustomShares(item));
   const perPerson = item.splitWith.length > 0 && item.amount > 0 ? item.amount / item.splitWith.length : 0;
   const allKnown = [...people, ...deletedPeople];
   const nameOf = (id: string) => allKnown.find((p) => p.id === id);
+  // everyone who can get a portion: active members, plus removed people still on this item
+  const portionPeople = [...people, ...deletedPeople.filter((p) => item.splitWith.includes(p.id))];
 
-  /** change who's on the item; in portion mode keep the portions in step (new people start at 1 part) */
+  /** apply whole-number parts per person: 0 = not involved, 1+ = pays that many parts */
+  function applyParts(parts: Record<string, number>) {
+    const ids = portionPeople.map((p) => p.id).filter((id) => (parts[id] ?? 0) > 0);
+    const shares: Record<string, number> = {};
+    for (const id of ids) shares[id] = parts[id];
+    const { shares: _drop, ...rest } = item;
+    onChange(ids.length > 0 ? { ...rest, splitWith: ids, shares } : { ...rest, splitWith: [] });
+  }
+
+  const currentParts = (): Record<string, number> => {
+    const parts: Record<string, number> = {};
+    for (const p of portionPeople) parts[p.id] = item.splitWith.includes(p.id) ? Math.max(1, Math.round(itemWeight(item, p.id))) : 0;
+    return parts;
+  };
+
+  /** the dropdown still works in portion mode: ticking someone gives them 1 part, unticking sets 0 */
   function changeSplitWith(splitWith: string[]) {
     if (!portions) return onChange({ ...item, splitWith });
-    const shares: Record<string, number> = {};
-    for (const pid of splitWith) shares[pid] = item.shares?.[pid] ?? 1;
-    onChange({ ...item, splitWith, shares: splitWith.length > 0 ? shares : undefined });
+    const parts = currentParts();
+    for (const p of portionPeople) parts[p.id] = splitWith.includes(p.id) ? (parts[p.id] || 1) : 0;
+    applyParts(parts);
   }
 
   function togglePortions() {
     if (portions) {
+      // back to equal: everyone currently paying a part stays ticked
       const { shares: _drop, ...rest } = item;
+      setPortions(false);
       return onChange(rest);
     }
-    const shares: Record<string, number> = {};
-    for (const pid of item.splitWith) shares[pid] = 1;
-    onChange({ ...item, shares });
+    setPortions(true);
+    applyParts(currentParts());
   }
 
   function setPortion(pid: string, value: number) {
-    const clamped = Math.max(0.5, Math.round(value * 100) / 100);
-    onChange({ ...item, shares: { ...item.shares, [pid]: clamped } });
+    const parts = currentParts();
+    parts[pid] = Math.max(0, Math.min(999, Math.round(value) || 0));
+    applyParts(parts);
   }
+  const totalParts = Math.round(itemWeightSum(item));
 
   return (
     <div className="rounded-2xl bg-card2 p-3">
@@ -230,7 +251,7 @@ function ItemRow({
         </div>
       )}
 
-      {item.splitWith.length > 1 && (
+      {people.length > 1 && (
         <div className="mt-2.5">
           <div className="flex items-center gap-2.5">
             <span className="w-[26px] shrink-0" aria-hidden />
@@ -244,31 +265,33 @@ function ItemRow({
 
           {portions && (
             <div className="mt-2.5 space-y-1.5 rounded-xl bg-black/30 p-2.5">
-              {item.splitWith.map((pid) => {
-                const person = nameOf(pid);
-                const w = itemWeight(item, pid);
-                const owed = item.amount * itemFraction(item, pid);
+              {portionPeople.map((person) => {
+                const w = item.splitWith.includes(person.id) ? Math.max(1, Math.round(itemWeight(item, person.id))) : 0;
+                const owed = totalParts > 0 ? (item.amount * w) / totalParts : 0;
                 return (
-                  <div key={pid} className="flex items-center gap-2 text-[12px]">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: person?.color ?? "#48484a" }} aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-white">{person ? person.name : "(deleted)"}</span>
-                    <button type="button" onClick={() => setPortion(pid, w - 1)} disabled={w <= 0.5} aria-label={`Fewer parts for ${person?.name ?? "person"}`}
+                  <div key={person.id} className={`flex items-center gap-2 text-[12px] ${w === 0 ? "opacity-60" : ""}`}>
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: person.color }} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-white">{person.name}{deletedPeople.some((d) => d.id === person.id) ? " (deleted)" : ""}</span>
+                      <span className="block text-[10px] text-dim">{w === 0 ? "not involved" : `${w}/${totalParts}`}</span>
+                    </span>
+                    <button type="button" onClick={() => setPortion(person.id, w - 1)} disabled={w <= 0} aria-label={`Fewer parts for ${person.name}`}
                       className="flex h-6 w-6 items-center justify-center rounded-md bg-card text-muted transition hover:text-white disabled:opacity-30"><Minus size={12} /></button>
                     <input
-                      inputMode="decimal"
+                      inputMode="numeric"
                       value={String(w)}
-                      onChange={(e) => { const n = parseFloat(cleanNumber(e.target.value)); if (n > 0) setPortion(pid, n); }}
-                      aria-label={`Parts for ${person?.name ?? "person"}`}
+                      onChange={(e) => setPortion(person.id, parseInt(e.target.value.replace(/[^0-9]/g, ""), 10))}
+                      aria-label={`Parts for ${person.name}`}
                       className="w-9 rounded-md bg-card py-1 text-center text-[12px] font-semibold outline-none ring-1 ring-transparent focus:ring-accent/60"
                     />
-                    <button type="button" onClick={() => setPortion(pid, w + 1)} aria-label={`More parts for ${person?.name ?? "person"}`}
+                    <button type="button" onClick={() => setPortion(person.id, w + 1)} aria-label={`More parts for ${person.name}`}
                       className="flex h-6 w-6 items-center justify-center rounded-md bg-card text-muted transition hover:text-white"><Plus size={12} /></button>
-                    <span className="w-[74px] shrink-0 text-right text-accent">{item.amount > 0 ? money(currency, owed) : "—"}</span>
+                    <span className="w-[74px] shrink-0 text-right text-accent">{w > 0 && item.amount > 0 ? money(currency, owed) : "—"}</span>
                   </div>
                 );
               })}
               <p className="pt-1 text-[10px] text-dim">
-                {itemWeightSum(item)} part{itemWeightSum(item) === 1 ? "" : "s"} in total. Each person pays their parts ÷ the total, and tax and charges follow the same split.
+                Set parts in whole numbers; 0 means not involved. Each person pays their parts ÷ {totalParts || "total"} part{totalParts === 1 ? "" : "s"}, and tax and charges follow the same split.
               </p>
             </div>
           )}

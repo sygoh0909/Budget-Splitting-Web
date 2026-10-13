@@ -26,22 +26,64 @@ const TUTORIAL_TOPICS: { title: string; steps: string[] }[] = [
       "Open a book and tap Add Expense.",
       "Give it a title, choose who paid and pick a category.",
       "Add one or more items, each with its own amount.",
+      "Optionally add tax, service tax or a rounding adjustment — these are shared out in the same proportions as the items.",
       "Tap Save to log it.",
     ],
   },
   {
-    title: "Split an item",
+    title: "Split an item equally",
     steps: [
       "On each item, open the Split field.",
       "Tick the people it should be split between, or choose Everyone.",
-      "Items can be split differently, e.g. a solo coffee vs. a shared meal.",
+      "Each ticked person pays the same share. Items can be split differently, e.g. a solo coffee vs. a shared meal.",
     ],
   },
   {
-    title: "See who owes whom",
+    title: "Split by portion",
+    steps: [
+      "Open an item's split. When the book has two or more people, an Equal / By portion switch appears under the Split field.",
+      "Choose By portion. Everyone in the book is listed — set how many parts each person pays with − / + or by typing a whole number.",
+      "0 means that person isn't involved in this item. Not everyone has to take part.",
+      "Each person pays their parts ÷ the total parts. Example: Alice 2, Bob 1, Carol 0 → Alice pays 2/3, Bob 1/3, Carol nothing.",
+      "The fraction and amount next to each name update as you change the parts, and tax and charges follow the same split.",
+      "In the expense list, portion items show each person's share, e.g. “Alice 2/3 · amount”.",
+    ],
+  },
+  {
+    title: "People tab",
+    steps: [
+      "Open a book and tap the People tab.",
+      "Add Placeholder adds someone who doesn't have an account yet. They (or you) can merge it into a real member later with the merge icon.",
+      "In a shared book, Invite code copies the code friends use to join.",
+      "Join requests from people rejoining appear at the top, where you can Approve or Deny.",
+      "Each person shows what they've Paid and what they Should pay.",
+    ],
+  },
+  {
+    title: "Balances: who owes whom",
     steps: [
       "Open a book and tap the Balances tab.",
-      "Everything is netted out automatically, so you see the simplest payments to settle up.",
+      "Everything is netted out automatically, including portion splits, so you see the simplest payments to settle up.",
+      "The Owes list shows who owes whom — tap a row to see which expenses add up to it.",
+      "Each person's card shows what they're owed, and the expenses behind it.",
+    ],
+  },
+  {
+    title: "Pay or settle up",
+    steps: [
+      "On the Balances tab, find the debt in the Owes list.",
+      "Tap the QR button to see the other person's payment QR and the amount to send. If they have several methods, pick one first.",
+      "Pay using your banking or e-wallet app.",
+      "Tap the check button to mark it as settled. The payment is recorded and the debt moves to Settled.",
+    ],
+  },
+  {
+    title: "Add your payment QR",
+    steps: [
+      "Go to Profile → Payment Methods and tap Add.",
+      "Pick the type (bank, Touch 'n Go, DuitNow, GrabPay, Alipay, PayNow or other).",
+      "Upload a screenshot of your QR code, and optionally add an account or phone number.",
+      "Save it. People who owe you will see this QR when they tap the QR button next to their debt.",
     ],
   },
   {
@@ -50,14 +92,6 @@ const TUTORIAL_TOPICS: { title: string; steps: string[] }[] = [
       "On the home screen tap + and choose Create or Join.",
       "Create a book, then share its code with friends.",
       "To join, enter a code. The owner approves your request.",
-    ],
-  },
-  {
-    title: "Get paid back",
-    steps: [
-      "Go to Profile → Payment Methods.",
-      "Add a bank or e-wallet QR code.",
-      "People who owe you can then pay you straight from the app.",
     ],
   },
   {

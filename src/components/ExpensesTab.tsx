@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AlertCircle, ArrowRight, Banknote, CalendarDays, Camera, ChevronDown, ChevronUp, FilterX, Plus, Receipt, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Book, Expense } from "@/lib/types";
-import { dominantCategory, expenseDisplayTitle, expenseTotal, hasCustomShares, isSettlement, itemFraction, itemWeight } from "@/lib/split";
+import { dominantCategory, expenseDisplayTitle, expenseTotal, hasCustomShares, isSettlement, itemFraction, itemWeight, itemWeightSum } from "@/lib/split";
 import { categoryIcons } from "@/lib/constants";
 import { formatDate, money, monthName, todayISO, withAlpha, firstLetter } from "@/lib/util";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -137,7 +137,7 @@ export function ExpensesTab({ book, expenses, onAdd, onScan, onEdit, onDelete }:
                             <span key={pid}>
                               {i > 0 && ", "}
                               <span style={{ color: p?.color ?? "#48484a" }}>{name}</span>
-                              {custom && <span> {itemWeight(item, pid)}× · {money(book.currency, item.amount * itemFraction(item, pid))}</span>}
+                              {custom && <span> {Math.round(itemWeight(item, pid))}/{Math.round(itemWeightSum(item))} · {money(book.currency, item.amount * itemFraction(item, pid))}</span>}
                             </span>
                           );
                         })}
