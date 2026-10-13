@@ -9,6 +9,7 @@ import type { PaymentMethod } from "@/lib/types";
 import { PaymentQrModal } from "./PaymentQrModal";
 import { money, withAlpha } from "@/lib/util";
 import { Avatar } from "./ui/Avatar";
+import { useOnboarding } from "./Providers";
 
 interface Props {
   book: Book;
@@ -43,6 +44,8 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
   const [owesOpen, setOwesOpen] = useState(true);
   const [owedOpen, setOwedOpen] = useState(true);
   const [settledOpen, setSettledOpen] = useState(true);
+  // while the walkthrough is running, show a sample debt row so its QR / settle buttons can be pointed at
+  const { show: tourActive } = useOnboarding();
   const [expandedPair, setExpandedPair] = useState<string | null>(null);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
   const [settling, setSettling] = useState<string | null>(null);
@@ -131,6 +134,30 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
 
   return (
     <div className="space-y-4">
+      {tourActive && (
+        <div className="rounded-2xl border border-dashed border-accent/40 bg-card p-3.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-accent">Example — not real data</p>
+          <p className="mt-1.5 text-[13px] font-semibold">Sam owes Alex</p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[13px] font-bold text-danger">{money(book.currency, 25)}</span>
+            <span className="flex-1" />
+            <span
+              data-tour="balances-pay-qr"
+              aria-label="Example: pay by QR code"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-card2 text-accent"
+            >
+              <QrCode size={13} />
+            </span>
+            <span
+              data-tour="balances-settle"
+              aria-label="Example: mark as settled"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/15 text-accent"
+            >
+              <Check size={13} />
+            </span>
+          </div>
+        </div>
+      )}
       <div>
         <SectionHeader label="OWES" count={debts.length} expanded={owesOpen} onToggle={debts.length ? () => setOwesOpen((v) => !v) : undefined} />
         <div className="mt-2 space-y-2">
