@@ -163,16 +163,16 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
       <button
         onClick={() => setHistoryOpen(true)}
         data-testid="balance-history-open"
-        className="flex w-full items-center gap-3 rounded-2xl bg-card p-3.5 text-left transition hover:brightness-125"
+        className="flex w-full items-center gap-2.5 rounded-xl bg-card px-3 py-2.5 text-left transition hover:brightness-125"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card2 text-accent">
-          <History size={15} />
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-card2 text-accent">
+          <History size={13} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold">My balance history</span>
-          <span className="block truncate text-[11px] text-muted">View or download your past balances, even settled ones</span>
+          <span className="block text-xs font-semibold">My balance history</span>
+          <span className="block text-[10px] leading-snug text-muted">View or download your past balances, even settled ones</span>
         </span>
-        <ChevronRight size={16} className="shrink-0 text-dim" />
+        <ChevronRight size={14} className="shrink-0 text-dim" />
       </button>
       <div>
         <SectionHeader label="OWES" count={debts.length} expanded={owesOpen} onToggle={debts.length ? () => setOwesOpen((v) => !v) : undefined} />
