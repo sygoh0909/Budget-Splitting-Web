@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, QrCode, ReceiptText } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ChevronUp, History, QrCode, ReceiptText } from "lucide-react";
 import type { Book, Expense, Person } from "@/lib/types";
 import { computeBalances, computeGrossCredit, computeOwedToPerson, computePairwiseDebts, EPS } from "@/lib/split";
 import { getPaymentMethods } from "@/lib/db";
 import type { PaymentMethod } from "@/lib/types";
 import { PaymentQrModal } from "./PaymentQrModal";
+import { BalanceHistoryModal } from "./BalanceHistoryModal";
 import { money, withAlpha } from "@/lib/util";
 import { Avatar } from "./ui/Avatar";
 import { useOnboarding } from "./Providers";
@@ -44,6 +45,7 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
   const [owesOpen, setOwesOpen] = useState(true);
   const [owedOpen, setOwedOpen] = useState(true);
   const [settledOpen, setSettledOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   // while the walkthrough is running, show a sample debt row so its QR / settle buttons can be pointed at
   const { show: tourActive } = useOnboarding();
   const [expandedPair, setExpandedPair] = useState<string | null>(null);
@@ -158,6 +160,20 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
           </div>
         </div>
       )}
+      <button
+        onClick={() => setHistoryOpen(true)}
+        data-testid="balance-history-open"
+        className="flex w-full items-center gap-3 rounded-2xl bg-card p-3.5 text-left transition hover:brightness-125"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card2 text-accent">
+          <History size={15} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold">My balance history</span>
+          <span className="block truncate text-[11px] text-muted">View or download your past balances, even settled ones</span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-dim" />
+      </button>
       <div>
         <SectionHeader label="OWES" count={debts.length} expanded={owesOpen} onToggle={debts.length ? () => setOwesOpen((v) => !v) : undefined} />
         <div className="mt-2 space-y-2">
@@ -304,6 +320,8 @@ export function BalancesTab({ book, expenses, userId, onSettle, onClaim }: Props
       )}
 
       {expenses.length === 0 && <p className="py-10 text-center text-[13px] text-muted">No expenses yet.</p>}
+
+      {historyOpen && <BalanceHistoryModal book={book} expenses={expenses} userId={userId} onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 }
